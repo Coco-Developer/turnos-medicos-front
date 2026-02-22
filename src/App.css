@@ -1,0 +1,522 @@
+@import url('https://fonts.googleapis.com/css2?family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,500;1,700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600;700&display=swap');
+@import "@fortawesome/fontawesome-svg-core/styles.css";
+
+:root {
+  /*MUI no parece estar generando las variables, por lo que las pongo "a mano".
+    Son las mismas que están en el index.js */
+  --mui-palette-primary-main: #007c6a;
+  --mui-palette-primary-light: #00af96;
+  --mui-palette-primary-dark: #004c41;
+  --mui-palette-secondary-main: #003e86;
+  --mui-palette-secondary-light: #2a7aeb;
+  --mui-palette-secondary-dark: #00205a;
+  --custom-footer-background: #cdcdcd;
+
+  --mui-palette-on-primary-main: #fff;
+  --mui-palette-on-secondary-main: #fff;
+
+  --mui-palette-error-main: #ba3329;
+  --mui-palette-warning-main: #ffc107;
+  --mui-palette-success-main: #3c763d; /* Opciones: 3c763d 5cb85c*/
+
+  --fc-today-bg-color: #e8f5e8;
+  --fc-button-bg-color: #004c41;
+  --fc-button-border-color: #004c41;
+  --fc-button-hover-bg-color: #007c6a;
+  --fc-button-hover-border-color: #007c6a;
+  --fc-border-color: #afafaf;
+  --fc-event-bg-color: #00205a;
+  --fc-event-border-color: #00205a;
+  --fc-header-toolbar-bg-color: rgba(219, 222, 225, 0.3);
+
+  --mui-palette-sidebar-background: #004c41;
+  --mui-palette-on-sidebar-background: #fff;
+
+  --mui-palette-base-background: rgba(219, 222, 225, 0.5); /*dbdeff con 50% de opacidad */
+  --mui-palette-legend: rgba(0, 0, 0, .6);
+  --mui-palette-fieldset-border: rgba(0, 0, 0, .2);
+
+  --mui-palette-primary-contrastText: #fff;
+}
+
+.dark-theme {
+  --mui-palette-primary-main: #00af96;
+  --mui-palette-primary-light: #90f2dc;
+  --mui-palette-primary-dark: #007c6a;
+  --mui-palette-secondary-main: #2a7aeb;
+  --mui-palette-secondary-light: #9accfd;
+  --mui-palette-secondary-dark: #003e86;
+
+  --custom-footer-background: #1e1e1e;
+
+  --mui-palette-on-primary-main: #000;
+  --mui-palette-on-secondary-main: #000;
+
+  --mui-palette-warning-main: #ffb74d;
+  --mui-palette-error-main: #ed4134;
+  --mui-palette-success-main: #66bb6a;
+
+  --fc-today-bg-color: #170a17;
+  --fc-button-bg-color: #007c6a;
+  --fc-button-border-color: #007c6a;
+  --fc-button-hover-bg-color: #00af96;
+  --fc-button-hover-border-color: #00af96;
+  --fc-border-color: #444;
+  --fc-event-bg-color: #003e86;
+  --fc-event-border-color: #003e86;
+  --fc-header-toolbar-bg-color: rgba(69, 70, 71, 0.3);
+
+  --mui-palette-sidebar-background: #00231c;
+  --mui-palette-on-sidebar-background: #fff;
+
+  --mui-palette-base-background: rgba(22, 22, 26, 0.5); /*16161a con 50% de opacidad */
+  --mui-palette-legend: rgba(255, 255, 255, .7);
+  --mui-palette-fieldset-border: rgba(255, 255, 255, .2);
+
+  --mui-palette-primary-contrastText: #000;
+}
+
+body {
+  margin: 0;
+  font-family: "Ubuntu", -apple-system, BlinkMacSystemFont, "Bitstream Vera Sans", "DejaVu Sans", Tahoma, 'Segoe UI', 'Roboto', 'Droid Sans', 'Helvetica Neue', sans-serif !important;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@media (max-width: 600px) {
+  body {
+    background-size: 50%;
+  }
+}
+
+#root {
+  display: flex;
+  flex-direction: row;
+  min-height: 100vh;
+  direction: ltr
+}
+header {
+  background-color: var(--mui-palette-primary-dark) !important;
+}
+
+main{
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  padding-left: 1rem;
+  background-image: url("/img/bkg.png");
+  background-attachment: local;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 40%;
+}
+
+aside {
+  background-color: var(--mui-palette-sidebar-background) !important;
+  color: var(--mui-palette-on-sidebar-background);
+}
+aside>div{
+  background-color: transparent !important;
+}
+aside .ps-menu-button{
+    color: var(--mui-palette-on-sidebar-background) !important;
+}
+
+footer{
+  margin-top: auto;
+  color: var(--mui-palette-primary-main) !important;
+  background-color: var(--custom-footer-background) !important;
+  font-family: "Rajdhani", sans-serif;
+  font-size: .8rem;
+  font-weight: 400;
+  font-style: normal;
+  box-shadow: inset rgba(0, 0, 0, 0.14) 0 2px 4px -1px, inset rgba(0, 0, 0, 0.1) 0 4px 5px 0
+}
+
+.App {
+  text-align: center;
+}
+
+.app-logo{
+  text-decoration: none;
+  text-align: center;
+}
+
+.app-logo > span,
+.app-logo-alt{
+  display: block;
+  color:var(--mui-palette-on-sidebar-background) !important;
+  text-decoration: none;
+  text-align: center;
+  font-family: "Rajdhani", sans-serif !important;
+  font-weight: 300  !important;
+  font-style: normal !important;
+}
+
+.app-logo b {
+  font-weight: 700  !important;
+}
+
+.App-link {
+  color: var(--mui-palette-primary-main);
+}
+
+h1, h2, h3, h4{
+  font-family: "Rajdhani", sans-serif !important;
+  font-weight: 300 !important;
+}
+
+h1.page-title{
+  color: var(--mui-palette-primary-main) !important;
+  font-family: "Oxigen", sans-serif;
+  font-size: 3rem;
+  font-weight: 300;
+  font-style: normal;
+}
+
+h2{
+  font-weight: 500 !important;
+  font-size: 2rem !important;
+  color: var(--mui-palette-secondary-dark);
+}
+
+.submenu {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.5s ease;
+}
+
+.submenu.open {
+  max-height: 200px;
+}
+
+.chevron {
+  transition: transform 0.3s ease;
+}
+
+.chevron.rotated {
+  transform: rotate(180deg);
+}
+
+.background-primary,
+.MuiTableHead-root tr{
+  background-color: var(--mui-palette-primary-main) !important;
+}
+
+.MuiTableHead-root tr th,
+.MuiTableHead-root tr th .MuiSvgIcon-root{
+  color: var(--mui-palette-on-primary-main) !important; /*ed9339*/
+}
+
+.product-img{
+  height: 156px;
+  border-radius: 50%;
+  border: 6px solid var(--mui-palette-primary-main)
+}
+
+.ws-pre{
+  white-space: pre-wrap;
+}
+
+.ps-menu-button:hover{
+  background-color: var(--mui-palette-secondary-main) !important;
+}
+.ps-menu-button:active,
+.ps-menu-button.active{
+  background-color: var(--mui-palette-secondary-dark) !important;
+}
+.MuiClock-wrapper .MuiClockNumber-root{
+  color: rgba(0,0,0,.80)  !important;
+}
+
+.MuiClock-wrapper .MuiClockNumber-root.Mui-disabled{
+  color: rgba(0,0,0,.20) !important;
+}
+
+.status-activo{
+  color: var(--mui-palette-secondary-main) !important;
+}
+.status-activo-bg{
+  color: #fff;
+  background-color: var(--mui-palette-secondary-main) !important;
+}
+
+.status-cancelado{
+  color: var(--mui-palette-error-main) !important;
+}
+.status-cancelado-bg{
+  color: #fff;
+  background-color: var(--mui-palette-error-main) !important;
+}
+
+.status-ok{
+  color: var(--mui-palette-success-main) !important;
+}
+.status-ok-bg{
+  color: #fff;
+  background-color: var(--mui-palette-success-main) !important;
+}
+
+@keyframes spin {
+  from {transform:rotate(0deg);}
+  to {transform:rotate(359deg);}
+}
+@keyframes swing {
+  0% { transform: rotate(0deg); }
+  25% { transform: rotate(45deg); }
+  50% { transform: rotate(0deg); }
+  75% { transform: rotate(-45deg); }
+}
+
+.action-icon:hover {
+  animation-name: swing;
+  animation-duration: 4000ms;
+  animation-iteration-count: infinite;
+  animation-timing-function: linear;
+}
+.spinner:hover{
+  animation-name: spin;
+  animation-duration: 2000ms;
+  animation-iteration-count: 1;
+  animation-timing-function: linear;
+}
+
+.ps-menu-button.active > .ps-menu-icon{
+  animation-name: swing;
+  animation-duration: 2000ms;
+  animation-iteration-count: 2;
+  animation-timing-function: linear;
+}
+
+.helper-text-error{
+  color: var(--mui-palette-error-main) !important;
+  font-family: "Roboto","Helvetica","Arial",sans-serif;
+  font-weight: 400;
+  font-size: 0.75rem;
+  line-height: 1.66;
+  letter-spacing: 0.03333em;
+  text-align: left;
+  margin: 3px 14px 0;
+}
+
+.background-primary-main,
+.background-primary-dark,
+.background-secondary-main,
+.background-secondary-dark{
+  color: var(--mui-palette-on-primary-main) !important;
+}
+.background-primary-main{
+  background-color: var(--mui-palette-primary-main) !important;
+}
+.background-primary-dark{
+  background-color: var(--mui-palette-primary-dark) !important;
+}
+.background-secondary-main{
+  background-color: var(--mui-palette-secondary-main) !important;
+}
+
+.background-secondary-dark{
+  background-color: var(--mui-palette-secondary-dark) !important;
+}
+
+h3.widget{
+  margin: 0;
+  padding: 0;
+  font-weight: bold;
+  font-size: 4rem;
+}
+h5.widget{
+  margin: 0;
+  padding: 0;
+}
+
+.MuiPickersLayout-root{
+  background-color: transparent !important;
+}
+.MuiClockNumber-root.Mui-selected{
+  color: var(--mui-palette-on-primary-main) !important;
+}
+
+.fieldset{
+  border: 1px solid var(--mui-palette-fieldset-border) !important;
+  border-radius: 4px;
+  margin: 1rem 0 1.5rem 0;
+  padding: 1rem;
+}
+
+.fieldset>legend{
+  margin-left: -.5rem;
+  padding: 0 .5rem;
+  font-size: .8em;
+  color: var(--mui-palette-legend) !important;
+}
+
+.rotate-90 {
+  transform: rotate(-90deg) !important;
+  transform-origin: center center;
+  white-space: nowrap;
+}
+
+/*
+This is the Material Design theme for FullCalendar Weekly Agenda view
+
+Creation Date: Aug 19th 2015
+Author: Jacky Liang
+Version: FullCalendar 2.4.0
+
+Reutilizado y modificado por AndrésL
+*/
+
+.fc-state-highlight {
+  opacity: 0;
+  border: none;
+}
+
+/* Styling for each event from Schedule */
+.fc-time-grid-event.fc-v-event.fc-event {
+  border-radius: 4px;
+  border: none;
+  padding: 5px;
+  opacity: .65;
+  left: 5% !important;
+  right: 5% !important;
+}
+
+/* Remove the header border from Schedule */
+.fc td, .fc th {
+  border-width: 1px !important;
+  padding: 0 !important;
+  vertical-align: top !important;
+}
+
+.fc tr td:first-child,
+.fc tr th:first-child{
+  border-left: none !important;
+}
+.fc tr td:last-child,
+.fc tr th:last-child{
+  border-right: none !important;
+}
+
+.fc tr th{
+  border-top: none !important;
+  border-bottom: none !important;
+}
+
+.fc table{
+  border:none !important;
+}
+
+/* Inherits background for each event from Schedule. */
+.fc-event .fc-bg {
+  z-index: 1 !important;
+  background: inherit !important;
+  opacity: .25 !important;
+}
+
+/* Normal font weight for the time in each event */
+.fc-time-grid-event .fc-time {
+  font-weight: normal !important;
+}
+
+/* Apply same opacity to all day events */
+.fc-ltr .fc-h-event.fc-not-end, .fc-rtl .fc-h-event.fc-not-start {
+  opacity: .65 !important;
+  margin-left: 12px !important;
+  padding: 5px !important;
+}
+
+/* Apply same opacity to all day events */
+.fc-day-grid-event.fc-h-event.fc-event.fc-not-start.fc-end {
+  opacity: .65 !important;
+  margin-left: 12px !important;
+  padding: 5px !important;
+}
+
+/* Material design button */
+.fc-button {
+  display: inline-block;
+  position: relative;
+  cursor: pointer;
+  min-height: 36px;
+  min-width: 88px;
+  line-height: 36px;
+  vertical-align: middle;
+  -webkit-box-align: center;
+  -webkit-align-items: center;
+  align-items: center;
+  text-align: center;
+  border-radius: 2px;
+  box-sizing: border-box;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  outline: none;
+  border: 0;
+  padding: 0 6px;
+  margin: 6px 8px;
+  letter-spacing: .01em;
+  background: transparent;
+  color: currentColor;
+  white-space: nowrap;
+  text-transform: uppercase;
+  font-weight: 500;
+  font-size: 14px;
+  font-style: inherit;
+  font-variant: inherit;
+  font-family: inherit;
+  text-decoration: none;
+  overflow: hidden;
+  -webkit-transition: box-shadow .4s cubic-bezier(.25,.8,.25,1),background-color .4s cubic-bezier(.25,.8,.25,1);
+  transition: box-shadow .4s cubic-bezier(.25,.8,.25,1),background-color .4s cubic-bezier(.25,.8,.25,1);
+}
+
+/*.fc-button:hover {*/
+/*  background-color: rgba(158,158,158,0.2);*/
+/*}*/
+
+.fc-button:focus, .fc-button:hover {
+  text-decoration: none;
+}
+
+/* The active button box is ugly so the active button will have the same appearance of the hover */
+.fc-state-active {
+  background-color: rgba(158,158,158,0.2);
+}
+
+/* Not raised button */
+.fc-state-default {
+  box-shadow: None;
+}
+
+/* Mods propias */
+.fc-header-toolbar{
+  margin-top: .5rem;
+  margin-bottom: 0 !important;
+  padding-top: .5rem;
+  padding-bottom: 1.5rem;
+  background: var(--fc-header-toolbar-bg-color);
+}
+.fc-col-header-cell{
+  background-color: var(--mui-palette-primary-main) !important;
+  color: var(--mui-palette-on-primary-main) !important;
+  font-family: "Rajdhani", sans-serif !important;
+  font-weight: 700 !important;
+  text-transform: uppercase;
+  border-top: none !important;
+  border-bottom: none !important;
+}
+.fc-event{
+  width: 6rem;
+  height: 6rem;
+  line-height: 6rem;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  border-radius: 50%;
+  text-align: center;
+  font-weight: bold !important;
+  font-size: 3rem;
+  font-family: "Rajdhani", sans-serif;
+}

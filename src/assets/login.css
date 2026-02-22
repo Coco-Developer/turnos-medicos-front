@@ -1,0 +1,68 @@
+/* Bloqueamos los estilos para que no afecten otras páginas */
+.login-page-wrapper #bg-video {
+    position: fixed;
+    top: 0;
+    left: 0;
+    min-width: 100%;
+    min-height: 100%;
+    width: auto;
+    height: auto;
+    object-fit: cover;
+    z-index: -100;
+}
+
+/* Capa oscura que resuelve el problema del brillo */
+.login-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: -99;
+}
+
+#main {
+    position: relative;
+    z-index: 10;
+}
+
+.login-box-container {
+    width: 100%; /* Ocupa el ancho del Grid */
+    max-width: 400px; /* Evita que se estire de más en pantallas grandes */
+    min-height: 450px; /* Mantiene una altura base similar entre pantallas */
+    padding: 2.5rem;
+    background-color: rgba(0, 51, 40, 0.5); 
+    backdrop-filter: blur(10px);
+    border-radius: 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    box-sizing: border-box; /* Crucial para que el padding no sume al ancho */
+}
+
+.login-logo {
+    height: 6rem;
+    width: auto;
+    margin-bottom: 1rem;
+    filter: drop-shadow(0 0 10px rgba(0,0,0,0.5));
+}
+
+.app-logo-alt {
+    font-family: 'Roboto', sans-serif; /* Asegúrate de que sea la misma que el login */
+    font-size: 2.125rem !important; /* Tamaño exacto de h4 de MUI */
+    color: #fff !important;
+    margin-top: 0.5rem;
+    letter-spacing: 0.00735em;
+}
+
+.forgot-password-btn {
+    color: #fff !important; /* Forzamos blanco para visibilidad */
+    opacity: 0.8;
+}
+
+.forgot-password-btn:hover {
+    opacity: 1;
+    background-color: rgba(255, 255, 255, 0.1) !important;
+}
