@@ -1,4 +1,4 @@
-import api from "./auth.service";
+import api from "./auth.service"; // Instancia centralizada y blindada
 
 //------------------------------------------------------------------------------
 // Listar todos los estados
@@ -9,7 +9,7 @@ export const listarEstados = async () => {
     } catch (error) {
         console.error('Error obteniendo datos de Estados: ', error);
         return {
-            status: error.response?.status,
+            status: error.response?.status || 500,
             statusText: error.response?.data?.message || 'Error al conectar con el servidor'
         };
     }
@@ -24,8 +24,8 @@ export const obtenerEstado = async (id) => {
     } catch (error) {
         console.error('Error obteniendo datos de un Estado: ', error);
         return {
-            status: error.response?.status,
-            statusText: error.response?.data?.message
+            status: error.response?.status || 500,
+            statusText: error.response?.data?.message || 'Estado no encontrado'
         };
     }
 };
@@ -38,8 +38,8 @@ export const crearEstado = async (estado) => {
     } catch (error) {
         console.error(`Error creando registro de Estado: (${error.response?.status})`);
         return {
-            status: error.response?.status,
-            statusText: error.response?.data?.message
+            status: error.response?.status || 500,
+            statusText: error.response?.data?.message || 'Error al crear el estado'
         };
     }
 };
@@ -52,8 +52,8 @@ export const modificarEstado = async (id, estado) => {
     } catch (error) {
         console.error(`Error actualizando registro de Estado: (${error.response?.status})`, error);
         return {
-            status: error.response?.status,
-            statusText: error.response?.data?.message
+            status: error.response?.status || 500,
+            statusText: error.response?.data?.message || 'Error al actualizar el estado'
         };
     }
 };
@@ -66,8 +66,8 @@ export const borrarEstado = async (id) => {
     } catch (error) {
         console.error('Error borrando registro de Estado: ', error);
         return {
-            status: error.response?.status,
-            statusText: error.response?.data?.message
+            status: error.response?.status || 500,
+            statusText: error.response?.data?.message || 'Error al borrar el estado'
         };
     }
 };

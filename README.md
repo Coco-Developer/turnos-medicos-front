@@ -1,16 +1,36 @@
-# React + Vite
+🏥 ChronoMED Revolution - Sistema de Gestión Médica
+ChronoMED es una solución integral para la administración de centros de salud, desarrollada como proyecto colaborativo. El sistema permite una gestión ágil de turnos, médicos y pacientes, centralizando la operación en una interfaz moderna y eficiente.
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+🚀 Modernización y Migración
+Originalmente concebido en una arquitectura tradicional, el equipo tomó la decisión estratégica de migrar el proyecto a Vite. Esta transición permitió:
 
-Currently, two official plugins are available:
+Optimización del Build: Reducción significativa en los tiempos de compilación y despliegue.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+Developer Experience: Implementación de Hot Module Replacement (HMR) para un desarrollo más ágil.
 
-## React Compiler
+Performance: Mejora en la velocidad de carga final del cliente mediante la optimización de activos estáticos.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+👥 Trabajo en Equipo
+Este proyecto es el resultado del esfuerzo coordinado de un equipo de desarrollo, donde aplicamos:
 
-## Expanding the ESLint configuration
+Metodologías Ágiles: Sincronización constante para la integración de componentes.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Control de Versiones: Uso riguroso de Git para la gestión de ramas y resolución de conflictos.
+
+Full-Stack Integration: Conexión fluida con un backend robusto y base de datos SQL alojados en Azure.
+
+🛠️ Stack Principal
+Frontend: React 19, Material UI (MUI) v7, React Router 7.
+
+Visualización: MUI X Charts, ApexCharts, FullCalendar.
+
+Networking: Axios con interceptores de seguridad (JWT & API Keys).
+
+Infraestructura: Desplegado mediante GitHub Actions en Azure Static Web Apps.
+
+🔑 Características Clave
+Dashboard de Métricas: Visualización en tiempo real de la actividad del centro médico.
+
+Seguridad: Rutas protegidas y manejo de sesiones seguras mediante interceptores de respuesta.
+
+UX/UI Profesional: Interfaz limpia, responsiva y orientada al usuario administrativo y médico.

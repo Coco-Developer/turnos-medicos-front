@@ -1,18 +1,15 @@
 import dayjs from "dayjs";
-import {crearMedico, modificarMedico} from "../../../services/medicos.service";
-import {useSnack} from "../../context/SnackContext";
-import {DATE_FORMAT, DAYSMAP} from "../../libs/constants";
+import { crearMedico, modificarMedico } from "../../../services/medicos.service";
+import { useSnack } from "../../context/SnackContext";
+import { DATE_FORMAT, DAYSMAP } from "../../libs/constants";
 
-
-//------------------------------------------------------------------------------
 export const handleValidation = (medico, setMedico) => (e) => {
     const isValid = !(e.target.value === '');
-    const med = { ...medico[e.target.name], ...{ error: !isValid } };
+    const med = { ...medico[e.target.name], error: !isValid };
     setMedico({ ...medico, [e.target.name]: med });
     return isValid;
 };
 
-//------------------------------------------------------------------------------
 const validateForm = (medico, defaultValues) => {
     let allOK = true;
     let updated = { ...medico };
@@ -28,14 +25,11 @@ const validateForm = (medico, defaultValues) => {
         }
 
         if (key.startsWith("horarioatencion_") && value.dato) {
-            // Normalizar por las dudas:
             const asDayjs = dayjs(value.dato).second(0).millisecond(0);
-
             if (!asDayjs.isValid()) {
                 isNotValid = true;
                 errorCode = "invalidDate";
             } else {
-                // Normalizar por las dudas:
                 const min = defaultValues.minTime.second(0).millisecond(0);
                 const max = defaultValues.maxTime.second(0).millisecond(0);
                 if (asDayjs.isBefore(min) || asDayjs.isAfter(max)) {
@@ -45,29 +39,23 @@ const validateForm = (medico, defaultValues) => {
             }
         }
 
-        updated[key] = {
-            ...value,
-            error: isNotValid,
-            errorCode
-        };
+        updated[key] = { ...value, error: isNotValid, errorCode };
         if (isNotValid) allOK = false;
     }
 
-    // 2. Validación de pares inicio–fin por día de semana
+    // 2. Validación de pares inicio–fin por día de semana (TU LÓGICA ORIGINAL)
     Object.keys(DAYSMAP).forEach(dayKey => {
         const iniKey = `horarioatencion_${dayKey}_inicio`;
         const finKey = `horarioatencion_${dayKey}_fin`;
 
-        let inicio = medico[iniKey]?.dato ?? null;
-        let fin = medico[finKey]?.dato ?? null;
+        let inicio = updated[iniKey]?.dato ?? null;
+        let fin = updated[finKey]?.dato ?? null;
 
         const mismatch = (inicio && !fin) || (!inicio && fin);
 
         if (mismatch) {
             allOK = false;
-        }
-        else if (inicio && fin) {
-            // Si inicio > fin, intercambiar
+        } else if (inicio && fin) {
             const iniDay = dayjs(inicio);
             const finDay = dayjs(fin);
             if (iniDay.isAfter(finDay)) {
@@ -91,167 +79,102 @@ const validateForm = (medico, defaultValues) => {
         };
     });
 
-    // 3. Validación: al menos un día completo trabajado
+    // 3. Validación: al menos un día completo (TU LÓGICA ORIGINAL)
     const tieneAlMenosUnDia = Object.keys(DAYSMAP).some(dayKey => {
         const iniKey = `horarioatencion_${dayKey}_inicio`;
         const finKey = `horarioatencion_${dayKey}_fin`;
-        const inicio = medico[iniKey]?.dato ?? null;
-        const fin = medico[finKey]?.dato ?? null;
-        return inicio && fin;
+        return updated[iniKey]?.dato && updated[finKey]?.dato;
     });
 
     if (!tieneAlMenosUnDia) {
         allOK = false;
-
         Object.keys(DAYSMAP).forEach(dayKey => {
-            const iniKey = `horarioatencion_${dayKey}_inicio`;
-            const finKey = `horarioatencion_${dayKey}_fin`;
-
-            updated[iniKey] = {
-                ...updated[iniKey],
-                error: true,
-                errorCode: "noWorkingDay"
-            };
-            updated[finKey] = {
-                ...updated[finKey],
-                error: true,
-                errorCode: "noWorkingDay"
-            };
+            updated[`horarioatencion_${dayKey}_inicio`].error = true;
+            updated[`horarioatencion_${dayKey}_fin`].error = true;
+            updated[`horarioatencion_${dayKey}_inicio`].errorCode = "noWorkingDay";
         });
     }
 
     return { allOK, updated };
 };
 
-//------------------------------------------------------------------------------
 export const SubmitForm = (medico, setMedico, idMedicoMod, setSaving, defValues) => {
     const { setSnackData } = useSnack();
-    return (event) => {
-        //console.info('handleSubmit');
-        event.preventDefault()
 
-        //const isValid = validateForm(medico, setMedico, defValues);
+    return async (event) => {
+        event.preventDefault();
         const { allOK, updated } = validateForm(medico, defValues);
         setMedico(updated);
 
-        let med = {};
-
         if (allOK) {
             setSaving(true);
-            let horarios = [];
-            // Preparar el objeto con los datos a guardar.
-            for (const [key, value] of Object.entries(updated)) {
-                //console.log(key, value.dato);
-                if (key.startsWith('horarioatencion')) {
-                    // Extraer partes: horarioatencion_[dia]_[inicio|fin]
-                    const partes = key.split('_');
-                    const diaStr = partes[1];
-                    const tipo = partes[2]; // 'inicio' o 'fin'
-                    const diaSemana = DAYSMAP[diaStr];
+            
+            // --- CONSTRUCCIÓN DEL OBJETO NORMALIZADO ---
+            // Usamos PascalCase para coincidir con el Backend C#
+            let medDto = {
+                Id: parseInt(idMedicoMod),
+                Apellido: updated.apellido.dato,
+                Nombre: updated.nombre.dato,
+                Telefono: updated.telefono.dato,
+                Direccion: updated.direccion.dato,
+                Dni: updated.dni.dato,
+                EspecialidadId: parseInt(updated.especialidadid.dato),
+                FechaAltaLaboral: dayjs(updated.fechaaltalaboral.dato).format("YYYY-MM-DDTHH:mm:ss"),
+                Matricula: updated.matricula.dato,
+                Foto: updated.foto.dato || null,
+                Horarios: []
+            };
 
-                    // Buscar si ya existe el objeto para ese día
-                    let horario = horarios.find(h => h.diaSemana === diaSemana);
-                    if (!horario) {
-                        horario = {
-                            medicoId: idMedicoMod,
-                            diaSemana: diaSemana,
-                            horarioAtencionInicio: '',
-                            horarioAtencionFin: ''
-                        };
-                        horarios.push(horario);
-                    }
+            // Mapeo de horarios preservando tu estructura de DAYSMAP
+            Object.keys(DAYSMAP).forEach(dayKey => {
+                const ini = updated[`horarioatencion_${dayKey}_inicio`].dato;
+                const fin = updated[`horarioatencion_${dayKey}_fin`].dato;
 
-                    // Asignar el valor formateado
-                    const horaStr = value.dato === null
-                        ? null
-                        : (typeof value.dato === 'object'
-                            ? dayjs(value.dato).format('HH:mm:ss')
-                            : value.dato);
-
-                    // Asignar el valor correcto según el tipo
-                    if (tipo === 'inicio') {
-                        horario.horarioAtencionInicio = horaStr;
-                    } else if (tipo === 'fin') {
-                        horario.horarioAtencionFin = horaStr;
-                    }
+                if (ini && fin) {
+                    medDto.Horarios.push({
+                        MedicoId: parseInt(idMedicoMod),
+                        DiaSemana: DAYSMAP[dayKey],
+                        HorarioAtencionInicio: dayjs(ini).format("HH:mm:ss"),
+                        HorarioAtencionFin: dayjs(fin).format("HH:mm:ss")
+                    });
                 }
+            });
 
-                if (key === 'fechaaltalaboral') {
-                    if (typeof value.dato == 'object') {
-                        value.dato = dayjs(value.dato).format(DATE_FORMAT);
-                    }
+            try {
+                const r = idMedicoMod === 0 
+                    ? await crearMedico(medDto) 
+                    : await modificarMedico(idMedicoMod, medDto);
+
+                setSaving(false);
+                if (r.status === 200 || r.status === 201) {
+                    setSnackData({
+                        duration: 8000,
+                        type: 'success',
+                        message: 'Guardado correctamente. Volviendo...',
+                        open: true,
+                        href: '/medicos'
+                    });
+                } else {
+                    setSnackData({
+                        type: 'error',
+                        message: r.statusText || 'Error al guardar',
+                        open: true
+                    });
                 }
-                if (!key.startsWith('horarioatencion')) {
-                    med = {...med, [key]: value.dato}
-                }
-            }
-            delete med.med; // Se borra la prop extra.
-            med.horarios = horarios;
-
-            //console.log(med);
-
-            if (idMedicoMod === 0) {
-                //console.log(med);
-
-                //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-                // TO-DO: Verificar si el DNI ya existe antes de crear?
-                // (no recuerdo si este tira la bronca al guardar con un DNI que
-                // ya existe)
-                //¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡
-
-                crearMedico(med).then((r) => {
-                    setSaving(false);
-                    if (r.status === 200) {
-                        setSnackData({
-                            duration: 8000,
-                            type: 'success',
-                            message: 'Guardado correctamente. Volviendo a Lista...',
-                            open: true,
-                            action: 'alta',
-                            href: '/medicos'
-                        });
-                    } else {
-                        const errorText = r.statusText ?? 'Hubo un error al guardar. Vuelva a intentarlo.';
-
-                        setSnackData({
-                            type: 'error',
-                            message: errorText,
-                            open: true,
-                            action: ''
-                        });
-                    }
-                });
-            } else {
-                modificarMedico(idMedicoMod, med).then((r) => {
-                    setSaving(false);
-                    if (r.status === 200) {
-                        setSnackData({
-                            duration: 6000,
-                            type: 'success',
-                            message: 'Actualizado correctamente. Volviendo a Lista...',
-                            open: true,
-                            action: 'mod',
-                            href: '/medicos'
-                        });
-                    } else {
-                        const errorText = r.statusText ?? 'Hubo un error al actualizar. Vuelva a intentarlo.';
-
-                        setSnackData({
-                            type: 'error',
-                            message: errorText,
-                            open: true
-                        })
-                    }
+            } catch (error) {
+                setSaving(false);
+                setSnackData({
+                    type: 'error',
+                    message: 'Error de conexión con el servidor',
+                    open: true
                 });
             }
-
         } else {
             setSnackData({
                 type: 'error',
                 message: 'Verifique los campos marcados en rojo.',
                 open: true
-            })
+            });
         }
-
     };
-}
+};

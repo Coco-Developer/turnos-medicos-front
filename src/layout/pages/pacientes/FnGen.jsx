@@ -1,133 +1,110 @@
-import {crearPaciente, modificarPaciente, obtenerPacientePorDNI} from "../../../services/pacientes.service";
-import {useSnack} from "../../context/SnackContext";
-//------------------------------------------------------------------------------
+import { crearPaciente, modificarPaciente, obtenerPacientePorDNI } from "../../../services/pacientes.service";
+import { useSnack } from "../../context/SnackContext";
+import dayjs from "dayjs";
+
+// Maneja la validación en tiempo real de cada input
 export const handleValidation = (paciente, setPaciente) => (e) => {
     const isValid = !(e.target.value === '');
-    const pac = { ...paciente[e.target.name], ...{ error: !isValid } };
+    const pac = { ...paciente[e.target.name], error: !isValid };
     setPaciente({ ...paciente, [e.target.name]: pac });
     return isValid;
 };
-//------------------------------------------------------------------------------
+
+// Valida todo el formulario antes de enviar
 const validateForm = (paciente, setPaciente) => {
-    //console.info('ValidForm');
-    // Validar TODOS los campos de una sola vez.
-    let allOK = true; // Se asumen todos los campos OK.
-    let isNotValid = false;
+    let allOK = true;
+    const nuevosDatos = { ...paciente };
 
     for (const [key, value] of Object.entries(paciente)) {
         if (value.requerido) {
-            isNotValid = (value.dato === '' || value.dato == null); // Verdadero si vacío o nulo
-
-            // La fecha es un caso MUY especial.
-            if (key === 'fechanacimiento' && value.dato == null) {
-                // Se asigna un valor completamente inválido para que se
-                // marque en rojo (ya que ni el null ni el vacío lo hacen).
-                value.dato = 'a';
-            }
-
+            const isNotValid = (value.dato === '' || value.dato == null);
             if (isNotValid) {
-                // allOK es verdadero si TODOS los campos son válidos.
-                allOK = allOK && !isNotValid;
-
-                value.error = isNotValid;
-                setPaciente({
-                    ...paciente,
-                    [key]: value
-                });
+                allOK = false;
+                nuevosDatos[key] = { ...value, error: true };
             }
         }
     }
+    
+    // Actualizamos el estado una sola vez con todos los errores encontrados
+    if (!allOK) setPaciente(nuevosDatos);
     return allOK;
 }
-//------------------------------------------------------------------------------
+
 export const SubmitForm = (paciente, setPaciente, idPacienteMod, setSaving) => {
     const { setSnackData } = useSnack();
-    return (event) => {
-        //console.info('handleSubmit');
-        event.preventDefault()
-
-        const isValid = validateForm(paciente, setPaciente);
-
-        let pac = {};
-
-        if (isValid) {
-            setSaving(true);
-            // Preparar el objeto con los datos a guardar.
-            for (const [key, value] of Object.entries(paciente)) {
-                pac = {...pac, [key]: value.dato}
-            }
-            delete pac.pac; // Se borra la prop extra.
-            console.info('Inicio');
-
-            if (idPacienteMod === 0) {
-                // Verificar si el DNI ya existe antes de crear.
-                obtenerPacientePorDNI(pac.dni).then((r) => {
-                    if (r.status === undefined) {
-                        // Ya existe un Paciente con ese DNI.
-                        setSaving(false);
-                        setSnackData({
-                            type: 'error',
-                            message: `Ya existe un Paciente con ese DNI (${pac.dni}).`,
-                            open: true
-                        });
-                    }
-                    else{
-                        // No existe DNI, se puede crear.
-                        crearPaciente(pac).then((r) => {
-                            setSaving(false);
-                            if (r.status === 200) {
-                                setSnackData({
-                                    duration: 8000,
-                                    type: 'success',
-                                    message: 'Guardado correctamente. Volviendo a Lista...',
-                                    open: true,
-                                    action: 'alta',
-                                    href: "/pacientes"
-                                });
-                            } else {
-                                const errorText = r.statusText ?? 'Hubo un error al guardar. Vuelva a intentarlo.';
-
-                                setSnackData({
-                                    type: 'error',
-                                    message: errorText,
-                                    open: true,
-                                    action: ''
-                                });
-                            }
-                        });
-                    }
-                });
-            } else {
-                modificarPaciente(idPacienteMod, pac).then((r) => {
-                    setSaving(false);
-                    if (r.status === 200) {
-                        setSnackData({
-                            duration: 6000,
-                            type: 'success',
-                            message: 'Actualizado correctamente. Volviendo a Lista...',
-                            open: true,
-                            action: 'mod',
-                            href: "/pacientes"
-                        });
-                    } else {
-                        const errorText = r.statusText ?? 'Hubo un error al actualizar. Vuelva a intentarlo.';
-
-                        setSnackData({
-                            type: 'error',
-                            message: errorText,
-                            open: true
-                        })
-                    }
-                });
-            }
-
-        } else {
-            setSnackData({
-                type: 'error',
-                message: 'Verifique los campos marcados en rojo.',
-                open: true
-            })
+    
+    return async (event) => { // Usamos async/await para que sea más legible que los .then()
+        event.preventDefault();
+        
+        if (!validateForm(paciente, setPaciente)) {
+            setSnackData({ type: 'error', message: 'Verifique los campos obligatorios.', open: true });
+            return;
         }
 
+        setSaving(true);
+        
+        // --- PREPARACIÓN DEL DTO PARA C# ---
+        let pacDto = {};
+        for (const [key, value] of Object.entries(paciente)) {
+            const keyUpper = key.charAt(0).toUpperCase() + key.slice(1);
+            
+            if (key.toLowerCase() === 'fechanacimiento') {
+                // Si la fecha es inválida o nula, mandamos null, sino el formato ISO
+                pacDto[keyUpper] = value.dato ? dayjs(value.dato).format('YYYY-MM-DD') : null;
+            } else {
+                pacDto[keyUpper] = value.dato;
+            }
+        }
+
+        try {
+            if (idPacienteMod === 0) {
+                // 1. Verificar DNI
+                const resDni = await obtenerPacientePorDNI(pacDto.Dni);
+                
+                // Si r.status es undefined o 200, significa que encontró un paciente (DNI ocupado)
+                if (resDni && (resDni.status === 200 || resDni.id)) {
+                    setSnackData({ 
+                        type: 'error', 
+                        message: `El DNI ${pacDto.Dni} ya está registrado.`, 
+                        open: true 
+                    });
+                    setSaving(false);
+                    return;
+                }
+
+                // 2. Crear Paciente
+                const resCreate = await crearPaciente(pacDto);
+                if (resCreate.status === 200 || resCreate.status === 201) {
+                    setSnackData({
+                        type: 'success',
+                        message: '¡Paciente guardado con éxito!',
+                        open: true,
+                        href: "/pacientes"
+                    });
+                } else {
+                    // Si el backend mandó un error (ej: 400), mostramos el mensaje que viene del back
+                    const msg = resCreate.data?.message || 'Error al guardar el paciente.';
+                    setSnackData({ type: 'error', message: msg, open: true });
+                }
+            } else {
+                // 3. Modificar Paciente
+                const resUpdate = await modificarPaciente(idPacienteMod, pacDto);
+                if (resUpdate.status === 200) {
+                    setSnackData({
+                        type: 'success',
+                        message: 'Datos actualizados correctamente.',
+                        open: true,
+                        href: "/pacientes"
+                    });
+                } else {
+                    setSnackData({ type: 'error', message: 'Error al actualizar.', open: true });
+                }
+            }
+        } catch (error) {
+            console.error("Error en SubmitForm:", error);
+            setSnackData({ type: 'error', message: 'Error de conexión con el servidor.', open: true });
+        } finally {
+            setSaving(false);
+        }
     };
 }

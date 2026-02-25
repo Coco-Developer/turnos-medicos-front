@@ -1,4 +1,4 @@
-import api from "./auth.service";
+import api from "./auth.service"; // Instancia centralizada con interceptores
 
 //------------------------------------------------------------------------------
 // Listar todas las especialidades
@@ -9,7 +9,7 @@ export const listarEspecialidades = async () => {
     } catch (error) {
         console.error('Error obteniendo datos de Especialidades: ', error);
         return {
-            status: error.response?.status,
+            status: error.response?.status || 500,
             statusText: error.response?.data?.message || 'Error al obtener especialidades'
         };
     }
@@ -24,8 +24,8 @@ export const listarEspecialidadesCubiertas = async () => {
     } catch (error) {
         console.error('Error obteniendo especialidades cubiertas: ', error);
         return {
-            status: error.response?.status,
-            statusText: error.response?.data?.message
+            status: error.response?.status || 500,
+            statusText: error.response?.data?.message || 'Error al obtener especialidades cubiertas'
         };
     }
 };
@@ -39,8 +39,8 @@ export const obtenerEspecialidad = async (id) => {
     } catch (error) {
         console.error('Error obteniendo datos de la Especialidad: ', error);
         return {
-            status: error.response?.status,
-            statusText: error.response?.data?.message
+            status: error.response?.status || 500,
+            statusText: error.response?.data?.message || 'Especialidad no encontrada'
         };
     }
 };
@@ -49,12 +49,13 @@ export const obtenerEspecialidad = async (id) => {
 // Crear una nueva especialidad
 export const crearEspecialidad = async (especialidad) => {
     try {
+        // No es necesario pasar headers manuales, el interceptor inyecta X-API-KEY y Authorization
         return await api.post('/Especialidad', especialidad);
     } catch (error) {
         console.error(`Error creando registro de Especialidad: (${error.response?.status})`);
         return {
-            status: error.response?.status,
-            statusText: error.response?.data?.message
+            status: error.response?.status || 500,
+            statusText: error.response?.data?.message || 'Error al crear la especialidad'
         };
     }
 };
@@ -67,8 +68,8 @@ export const modificarEspecialidad = async (id, especialidad) => {
     } catch (error) {
         console.error(`Error actualizando registro de Especialidad: (${error.response?.status})`, error);
         return {
-            status: error.response?.status,
-            statusText: error.response?.data?.message
+            status: error.response?.status || 500,
+            statusText: error.response?.data?.message || 'Error al actualizar la especialidad'
         };
     }
 };
@@ -81,8 +82,8 @@ export const borrarEspecialidad = async (id) => {
     } catch (error) {
         console.error('Error borrando registro de Especialidad: ', error);
         return {
-            status: error.response?.status,
-            statusText: error.response?.data?.message
+            status: error.response?.status || 500,
+            statusText: error.response?.data?.message || 'Error al borrar la especialidad'
         };
     }
 };

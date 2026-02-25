@@ -1,12 +1,16 @@
 import api from "./auth.service";
 
-// --- HELPERS DE MANEJO DE ERRORES (Para mantener tu lógica actual) ---
+/**
+ * Manejador de errores estandarizado.
+ * Mantiene tu lógica pero asegura que el status siempre exista para evitar errores de JS.
+ */
 const handleError = (error) => ({
-    status: error.response?.status,
-    statusText: error.response?.data?.message || 'Error de red'
+    status: error.response?.status || 500,
+    statusText: error.response?.data?.message || 'Error de comunicación con el servidor de Turnos'
 });
 
 // --- FUNCIONES CORE ---
+
 export const listarTurnos = async () => {
     try {
         const response = await api.get('/Turno');
@@ -23,9 +27,15 @@ export const obtenerTurno = async (id) => {
 
 export const crearTurno = async (turno) => {
     try {
+        // El interceptor inyecta X-API-KEY y Authorization
         return await api.post('/Turno', turno);
     } catch (error) {
-        if (error.response?.data === 'Failure sending mail.') return; 
+        // LÓGICA CRÍTICA: Si el turno se creó pero falló el envío del mail, 
+        // no queremos que el usuario vea un error catastrófico.
+        if (error.response?.data === 'Failure sending mail.') {
+            console.warn("Turno creado, pero hubo un problema enviando el correo de notificación.");
+            return { status: 201, statusText: 'Created with mail warning' }; 
+        }
         return handleError(error);
     }
 };
@@ -43,6 +53,7 @@ export const borrarTurno = async (id) => {
 };
 
 // --- FILTROS ESPECÍFICOS ---
+
 export const listarTurnosDeFecha = async (dte) => {
     try {
         const response = await api.get(`/Turno/get-turnos-of-date/${dte}`);
@@ -73,16 +84,23 @@ export const listarFechasConTurno = async () => {
 
 export const modificarEstadoTurno = async (id, estado) => {
     try {
+        // Mantiene el formato de query param ?st=
         return await api.put(`/Turno/set-turno-status/${id}?st=${estado}`);
     } catch (error) { return handleError(error); }
 };
 
 // --- DASHBOARD Y CALENDARIO ---
+
 export const obtenerDashboardData = async () => {
     try {
         const response = await api.get('/Turno/get-dashboard-data');
         return response.data;
-    } catch (error) { return { status: error.response?.status }; }
+    } catch (error) { 
+        return { 
+            status: error.response?.status || 500,
+            statusText: 'No se pudo cargar la información del dashboard' 
+        }; 
+    }
 };
 
 export const listarCalendarData = async (startStr, endStr) => {
@@ -95,7 +113,7 @@ export const listarCalendarData = async (startStr, endStr) => {
 };
 
 // =========================================================
-// ALIAS DE COMPATIBILIDAD (Crucial para evitar Pantalla Blanca)
+// ALIAS DE COMPATIBILIDAD (Evitan el error de "Pantalla Blanca")
 // =========================================================
 export const listarTurnosPorMedico = listarTurnosDeMedico;
-export const listarTurnosPaciente = listarTurnosDePaciente; // Resuelve el error de PacientesListPage
+export const listarTurnosPaciente = listarTurnosDePaciente;
