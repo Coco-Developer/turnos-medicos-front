@@ -1,41 +1,50 @@
-import React from "react";
+import React, { memo } from "react";
 import Grid from '@mui/material/Grid';
 import { TextField } from "@mui/material";
-import {handleValidation} from "./FnGen";
+import { handleValidation } from "./FnGen";
 
-export const IdentificationInput = ({ medico, setMedico, onChange }) => {
+// Desacoplamos: extraemos dni y matricula del objeto global
+export const IdentificationInput = memo(({ dni, matricula, setMedico, onChange }) => {
+    
+    // Salvaguarda para evitar renderizar sin datos
+    if (!dni || !matricula) return null;
+
     return (
         <>
-            <Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
                 <TextField
-                    name={medico.dni.campo}
+                    name={dni.campo}
                     label="DNI"
                     variant="outlined"
                     fullWidth
                     margin="normal"
-                    required={medico.dni.requerido}
+                    required={dni.requerido}
                     onChange={onChange}
-                    onBlur={handleValidation(medico, setMedico)}
-                    value={medico.dni.dato}
-                    error={medico.dni.error}
-                    helperText={medico.dni.error ? "Debe ingresar el número de documento" : ""}
+                    // Validación focalizada en las props del componente
+                    onBlur={(e) => handleValidation({ dni, matricula }, setMedico)(e)}
+                    value={dni.dato || ""}
+                    error={dni.error}
+                    helperText={dni.error ? "Debe ingresar el número de documento" : ""}
                 />
             </Grid>
-            <Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
                 <TextField
-                    name={medico.matricula.campo}
+                    name={matricula.campo}
                     label="Matrícula"
                     variant="outlined"
                     fullWidth
                     margin="normal"
-                    required={medico.matricula.requerido}
+                    required={matricula.requerido}
                     onChange={onChange}
-                    onBlur={handleValidation(medico, setMedico)}
-                    value={medico.matricula.dato}
-                    error={medico.matricula.error}
-                    helperText={medico.matricula.error ? "Debe ingresar la matrícula" : ""}
+                    // Validación focalizada en las props del componente
+                    onBlur={(e) => handleValidation({ dni, matricula }, setMedico)(e)}
+                    value={matricula.dato || ""}
+                    error={matricula.error}
+                    helperText={matricula.error ? "Debe ingresar la matrícula" : ""}
                 />
             </Grid>
         </>
     );
-};
+});
+
+IdentificationInput.displayName = "IdentificationInput";

@@ -1,177 +1,188 @@
-
-import { useState, useEffect, useMemo } from "react";
-import Typography from "@mui/material/Typography";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { useParams } from "react-router-dom";
 import {
-    useTheme,
-    LinearProgress,
-    Tooltip,
+    Typography, Box, useTheme, LinearProgress, 
+    Paper, Grid, Avatar, Stack, Divider, Chip
 } from "@mui/material";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import Box from "@mui/material/Box";
-import { MaterialReactTable, useMaterialReactTable, } from 'material-react-table';
+import { 
+    faEnvelope, faIdCard, faPhone, 
+    faUser, faCalendarCheck 
+} from "@fortawesome/free-solid-svg-icons";
+
+import { MaterialReactTable, useMaterialReactTable } from 'material-react-table';
 import { MRT_Localization_ES } from 'material-react-table/locales/es';
+import dayjs from "dayjs";
+
+// Services
 import { listarTurnosPaciente } from "../../../services/turnos.service";
 import { obtenerPaciente } from "../../../services/pacientes.service";
-import {useParams} from "react-router-dom";
-import dayjs from "dayjs";
-import {faEnvelope, faIdCard, faPhone, faUser} from "@fortawesome/free-solid-svg-icons";
 
 const PacienteTurnosPage = () => {
     const { id } = useParams();
     const theme = useTheme();
+    
     const [data, setData] = useState([]);
-    const [loading, setLoading] = useState(false);
-    const [paciente, setPaciente] = useState('');
-    //--------------------------------------------------------------------------
-    const loadData = () => {
+    const [loading, setLoading] = useState(true);
+    const [paciente, setPaciente] = useState(null);
+
+    const loadData = useCallback(async () => {
         setLoading(true);
+        try {
+            // Cargamos ambos datos en paralelo para ganar velocidad
+            const [turnosRes, pacienteRes] = await Promise.all([
+                listarTurnosPaciente(id),
+                obtenerPaciente(id)
+            ]);
 
-        listarTurnosPaciente(id).then( (r) => {
-            setData(r);
-            loadPaciente(id);
+            setData(turnosRes);
 
-            setLoading(false);
-            //console.log(r);
-        });
-    }
-
-    const loadPaciente = (id) =>{
-        obtenerPaciente(id).then((r) => {
-            const dniFormateado = new Intl.NumberFormat(
-                "es-ES", {
-                    style: 'decimal',
-                    maximumFractionDigits: 0,
-                    useGrouping: true,
-            }).format(r.dni);
-
+            // Formateo de DNI para la vista
+            const dniFormateado = new Intl.NumberFormat("es-ES").format(pacienteRes.dni);
 
             setPaciente({
-                'nombre': `${r.apellido}, ${r.nombre} `,
-                'dni': dniFormateado,
-                'telefono': r.telefono,
-                'email': r.email,
+                nombreCompleto: `${pacienteRes.apellido}, ${pacienteRes.nombre}`,
+                inicial: pacienteRes.apellido.charAt(0),
+                dni: dniFormateado,
+                telefono: pacienteRes.telefono,
+                email: pacienteRes.email,
             });
-        });
-    }
+        } catch (error) {
+            console.error("Error cargando datos del paciente", error);
+        } finally {
+            setLoading(false);
+        }
+    }, [id]);
 
-    //--------------------------------------------------------------------------
     useEffect(() => {
         loadData();
-    }, []);
-    //--------------------------------------------------------------------------
-    const columns = useMemo(
-        () => [
-            {
-                accessorKey: 'fecha',
-                header: 'Fecha',
-                size: 20,
-                Cell: ({ cell }) => dayjs(cell.getValue()).format('DD/MM/YYYY'),
-            },
-            {
-                accessorKey: 'hora',
-                header: 'Hora',
-                size: 20,
+    }, [loadData]);
 
-            },
-            {
-                accessorKey: 'medico',
-                header: 'Médico',
-                size: 250,
-                Cell: ({ renderedCellValue, row }) => (
-                    <Box
-                        sx={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '1rem',
-                        }}
-                    >
-                        <img
-                            alt="Foto"
-                            height={30}
-                            src={`data:image/jpeg;base64,${row.original.foto}`}
-                            loading="lazy"
-                            style={{ borderRadius: '50%', border: '1px solid var(--mui-palette-primary-main)', }}
-                        />
-                        <span>{renderedCellValue}</span>
-                    </Box>
-                ),
-            },
-            {
-                accessorKey: 'especialidad',
-                header: 'Especialidad',
-                size: 100,
-            },
-            {
-                accessorKey: 'estado',
-                Cell: ({ cell, row }) => {
-                    return <div className={row.original.estadoClase}><FontAwesomeIcon icon={row.original.estadoIcono} size="lg" />&nbsp;{cell.getValue()}</div>;
-                },
-                grow: false,
-                header: 'Estado',
-                size: 20,
-            },
-            {
-                accessorKey: 'observaciones',
-                header: 'Obs',
-                size: 200,
-                enableEditing: false,
-            },
+    const columns = useMemo(() => [
+        {
+            accessorKey: 'fecha',
+            header: 'Fecha',
+            size: 100,
+            Cell: ({ cell }) => (
+                <Typography variant="body2" fontWeight={700}>
+                    {dayjs(cell.getValue()).format('DD/MM/YYYY')}
+                </Typography>
+            ),
+        },
+        {
+            accessorKey: 'hora',
+            header: 'Hora',
+            size: 80,
+            Cell: ({ cell }) => <Chip label={cell.getValue()} size="small" variant="outlined" />
+        },
+        {
+            accessorKey: 'medico',
+            header: 'Médico',
+            size: 250,
+            Cell: ({ renderedCellValue, row }) => (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Avatar
+                        src={row.original.foto ? `data:image/jpeg;base64,${row.original.foto}` : ""}
+                        sx={{ width: 32, height: 32, border: `1px solid ${theme.palette.divider}` }}
+                    />
+                    <Typography variant="body2">{renderedCellValue}</Typography>
+                </Box>
+            ),
+        },
+        {
+            accessorKey: 'especialidad',
+            header: 'Especialidad',
+            size: 150,
+        },
+        {
+            accessorKey: 'estado',
+            header: 'Estado',
+            size: 120,
+            Cell: ({ cell, row }) => (
+                <Box sx={{ 
+                    display: 'flex', alignItems: 'center', gap: 1,
+                    px: 1.5, py: 0.5, borderRadius: '20px', width: 'fit-content'
+                }} className={row.original.estadoClase}>
+                    <FontAwesomeIcon icon={row.original.estadoIcono} />
+                    <Typography variant="caption" fontWeight={700}>
+                        {cell.getValue().toUpperCase()}
+                    </Typography>
+                </Box>
+            ),
+        },
+        {
+            accessorKey: 'observaciones',
+            header: 'Observaciones',
+            size: 200,
+        },
+    ], [theme]);
 
-        ],
-        [],
-    );
-    //--------------------------------------------------------------------------
     const table = useMaterialReactTable({
         columns,
         data,
         enableHiding: false,
         localization: MRT_Localization_ES,
-        muiTablePaperProps:{
+        muiTablePaperProps: {
             elevation: 0,
-            sx: {backgroundColor: 'transparent'},
+            sx: { borderRadius: '16px', border: '1px solid', borderColor: 'divider' },
         },
-        mrtTheme: (theme) => ({
-            baseBackgroundColor: theme.palette.base.background,
-        }),
-        muiTableBodyProps: {
-            sx: {
-                '& tr:nth-of-type(odd) > td': {
-                    backgroundColor: theme.palette.action.hover,
-                },
-            },
+        initialState: { 
+            pagination: { pageSize: 10 },
+            sorting: [{ id: 'fecha', desc: true }] 
         },
-        initialState: {
-            pagination: { pageSize: 25},
-            sorting: [
-                {id: 'fecha', desc: false},
-                {id: 'hora', desc: false},
-            ]
-        },
-        getRowId: (row) => row.id,
-        positionToolbarAlertBanner: 'bottom',
-        enableRowActions: false,
-        positionActionsColumn: 'last',
     });
-    //--------------------------------------------------------------------------
-    if (!data) return null;
-//==============================================================================
-    return (
-        <>
-            <Typography variant="h1" className="page-title" color="primary">
-                Turnos del Paciente
-            </Typography>
-            {loading? <Box sx={{ width: '100%' }}><LinearProgress /></Box>:""}
-            <Typography variant="h2">
-                <FontAwesomeIcon icon={faUser}  /> {paciente.nombre}
-            </Typography>
-            <Typography variant="p">
-                <FontAwesomeIcon icon={faIdCard} style={{ color: theme.palette.secondary.main }} /> {paciente.dni}
-                <FontAwesomeIcon icon={faPhone} style={{ color: theme.palette.secondary.main, marginLeft: '2rem' }} /> {paciente.telefono}
-                <FontAwesomeIcon icon={faEnvelope} style={{ color: theme.palette.secondary.main, marginLeft: '2rem' }} /> {paciente.email}
-            </Typography>
 
-            <MaterialReactTable table={table}  />
-        </>
+    return (
+        <Box sx={{ p: 3 }}>
+            {/* --- CABECERA DE PERFIL --- */}
+            {paciente && (
+                <Paper sx={{ p: 3, mb: 4, borderRadius: 4, bgcolor: 'background.paper', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
+                    <Grid container spacing={3} alignItems="center">
+                        <Grid item>
+                            <Avatar sx={{ width: 80, height: 80, bgcolor: 'primary.main', fontSize: '2rem', fontWeight: 800 }}>
+                                {paciente.inicial}
+                            </Avatar>
+                        </Grid>
+                        <Grid item xs>
+                            <Typography variant="h4" fontWeight={900} color="text.primary">
+                                {paciente.nombreCompleto}
+                            </Typography>
+                            <Stack direction="row" spacing={3} sx={{ mt: 1 }} divider={<Divider orientation="vertical" flexItem />}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    <FontAwesomeIcon icon={faIdCard} color={theme.palette.text.secondary} />
+                                    <Typography variant="body2">{paciente.dni}</Typography>
+                                </Box>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    <FontAwesomeIcon icon={faPhone} color={theme.palette.text.secondary} />
+                                    <Typography variant="body2">{paciente.telefono}</Typography>
+                                </Box>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    <FontAwesomeIcon icon={faEnvelope} color={theme.palette.text.secondary} />
+                                    <Typography variant="body2">{paciente.email}</Typography>
+                                </Box>
+                            </Stack>
+                        </Grid>
+                        <Grid item>
+                             <Chip 
+                                icon={<FontAwesomeIcon icon={faCalendarCheck} />} 
+                                label={`${data.length} Turnos registrados`} 
+                                color="primary" variant="outlined" sx={{ fontWeight: 700 }}
+                            />
+                        </Grid>
+                    </Grid>
+                </Paper>
+            )}
+
+            {loading && <LinearProgress sx={{ mb: 2, borderRadius: 2 }} />}
+
+            {/* --- TABLA DE TURNOS --- */}
+            <Typography variant="h6" fontWeight={800} sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                Historial de Citas
+            </Typography>
+            
+            <MaterialReactTable table={table} />
+        </Box>
     );
 };
+
 export default PacienteTurnosPage;

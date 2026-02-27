@@ -1,41 +1,47 @@
-import React from "react";
-import { TextField } from "@mui/material";
-import Grid from '@mui/material/Grid';
-import {handleValidation} from "./FnGen";
+import React, { memo } from "react";
+import { TextField, Grid } from "@mui/material";
 
-export const PersonalInfoInputs = ({ paciente, setPaciente, onChange }) => {
+/**
+ * Pasamos solo los campos específicos y las funciones de control.
+ * Esto hace que el componente sea realmente "Pure" y vuele.
+ */
+export const PersonalInfoInputs = memo(({ apellido, nombre, onChange, onBlur }) => {
+    
     return (
         <>
-            <Grid size={{ xs: 12, md: 6 }}>
+            <Grid item xs={12} md={6}>
                 <TextField
-                    name={paciente.apellido.campo}
+                    name="apellido" // Usamos el string directo para evitar dependencias
                     label="Apellido"
                     variant="outlined"
                     fullWidth
-                    margin="normal"
-                    required={paciente.apellido.requerido}
+                    required
                     onChange={onChange}
-                    onBlur={handleValidation(paciente, setPaciente)}
-                    value={paciente.apellido.dato}
-                    error={paciente.apellido.error}
-                    helperText={paciente.apellido.error ? "Debe ingresar el apellido" : ""}
+                    onBlur={onBlur}
+                    value={apellido.dato}
+                    error={apellido.error}
+                    helperText={apellido.error ? "Debe ingresar el apellido" : ""}
+                    // Muy importante para carga de datos de API:
+                    InputLabelProps={{ shrink: true }} 
                 />
             </Grid>
-            <Grid size={{ xs: 12, md: 6 }}>
+            <Grid item xs={12} md={6}>
                 <TextField
-                    name={paciente.nombre.campo}
+                    name="nombre"
                     label="Nombre"
                     variant="outlined"
                     fullWidth
-                    margin="normal"
-                    required={paciente.nombre.requerido}
+                    required
                     onChange={onChange}
-                    onBlur={handleValidation(paciente, setPaciente)}
-                    value={paciente.nombre.dato}
-                    error={paciente.nombre.error}
-                    helperText={paciente.nombre.error ? "Debe ingresar el nombre" : ""}
+                    onBlur={onBlur}
+                    value={nombre.dato}
+                    error={nombre.error}
+                    helperText={nombre.error ? "Debe ingresar el nombre" : ""}
+                    InputLabelProps={{ shrink: true }}
                 />
             </Grid>
         </>
     );
-};
+});
+
+PersonalInfoInputs.displayName = "PersonalInfoInputs";

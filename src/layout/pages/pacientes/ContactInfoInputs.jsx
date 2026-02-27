@@ -1,46 +1,50 @@
-import React from "react";
-import { TextField } from "@mui/material";
-import Grid from '@mui/material/Grid';
-import {handleValidation} from "./FnGen";
+import React, { memo } from "react";
+import { TextField, Grid } from "@mui/material";
 
-export const ContactInfoInputs = ({ paciente, setPaciente, onChange }) => {
+/**
+ * Al recibir solo las propiedades necesarias (telefono, email), 
+ * React memo puede comparar valores primitivos o sub-objetos pequeños.
+ */
+export const ContactInfoInputs = memo(({ telefono, email, onChange, onBlur }) => {
+    
     return (
         <>
-            <Grid size={{ xs: 12, md: 6 }}>
+            <Grid item xs={12} md={6}>
                 <TextField
-                    name={paciente.telefono.campo}
+                    name="telefono"
                     label="Teléfono"
                     variant="outlined"
                     fullWidth
                     margin="normal"
-                    required={paciente.telefono.requerido}
+                    type="tel" // Mejor semántica para móviles y teclados numéricos
+                    required={telefono.requerido}
                     onChange={onChange}
-                    onBlur={handleValidation(paciente, setPaciente)}
-                    onKeyUp={(event) => {
-                        if (!/[0-9]/.test(event.key)) {
-                            event.preventDefault();
-                        }
-                    }}
-                    value={paciente.telefono.dato}
-                    error={paciente.telefono.error}
-                    helperText={paciente.telefono.error ? "Debe ingresar el teléfono" : ""}
+                    onBlur={onBlur}
+                    value={telefono.dato}
+                    error={telefono.error}
+                    helperText={telefono.error ? "Debe ingresar el teléfono" : ""}
+                    InputLabelProps={{ shrink: true }}
                 />
             </Grid>
-            <Grid size={{ xs: 12, md: 6 }}>
+            <Grid item xs={12} md={6}>
                 <TextField
-                    name={paciente.email.campo}
+                    name="email"
                     label="Email"
                     variant="outlined"
                     fullWidth
                     margin="normal"
-                    required={paciente.email.requerido}
+                    type="email"
+                    required={email.requerido}
                     onChange={onChange}
-                    onBlur={handleValidation(paciente, setPaciente)}
-                    value={paciente.email.dato}
-                    error={paciente.email.error}
-                    helperText={paciente.email.error ? "El formato es incorrecto" : ""}
+                    onBlur={onBlur}
+                    value={email.dato}
+                    error={email.error}
+                    helperText={email.error ? "El formato es incorrecto o campo vacío" : ""}
+                    InputLabelProps={{ shrink: true }}
                 />
             </Grid>
         </>
     );
-};
+});
+
+ContactInfoInputs.displayName = "ContactInfoInputs";

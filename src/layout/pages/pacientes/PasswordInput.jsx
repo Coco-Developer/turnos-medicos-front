@@ -1,52 +1,48 @@
-import React, { useState } from "react";
-import { FormControl, InputLabel, OutlinedInput, InputAdornment, FormHelperText } from "@mui/material";
-import Grid from '@mui/material/Grid';
+import React, { useState, memo } from "react";
+import { FormControl, InputLabel, OutlinedInput, InputAdornment, FormHelperText, Grid, IconButton } from "@mui/material";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
-import {handleValidation} from "./FnGen";
 
-export const PasswordInput = ({ paciente, setPaciente, onChange }) => {
+/**
+ * Recibe solo el valor 'password' (objeto con dato y error)
+ * y las funciones necesarias.
+ */
+export const PasswordInput = memo(({ password, onChange, onBlur }) => {
     const [showPassword, setShowPassword] = useState(false);
-    //--------------------------------------------------------------------------
-    const handleClickShowPassword = () => setShowPassword((show) => !show);
-    //--------------------------------------------------------------------------
-    const handleMouseDownPassword = (event) => event.preventDefault();
-    //--------------------------------------------------------------------------
-    const handleMouseUpPassword = (event) => event.preventDefault();
-    //--------------------------------------------------------------------------
 
-    //**************************************************************************
-    //**************************************************************************
-    //**************************************************************************
+    const handleClickShowPassword = () => setShowPassword(!showPassword);
+
     return (
-        <Grid size={{ xs: 12, md: 6 }}>
-            <FormControl variant="outlined" fullWidth margin="normal">
-                <InputLabel htmlFor="pw" error={paciente.password.error}>Contraseña</InputLabel>
+        <Grid item xs={12} md={6}>
+            <FormControl variant="outlined" fullWidth margin="normal" error={password.error}>
+                <InputLabel htmlFor="pw">Contraseña</InputLabel>
                 <OutlinedInput
                     id="pw"
-                    name={paciente.password.campo}
+                    name="password"
                     label="Contraseña"
                     type={showPassword ? 'text' : 'password'}
-                    required={paciente.password.requerido}
+                    required={password.requerido}
                     onChange={onChange}
-                    onBlur={handleValidation(paciente, setPaciente)}
-                    value={paciente.password.dato}
-                    error={paciente.password.error}
+                    onBlur={onBlur} // La validación viene del padre ya procesada
+                    value={password.dato}
                     endAdornment={
                         <InputAdornment position="end">
-                            <FontAwesomeIcon
-                                icon={showPassword ? faEyeSlash : faEye}
+                            <IconButton
                                 onClick={handleClickShowPassword}
-                                onMouseDown={handleMouseDownPassword}
-                                onMouseUp={handleMouseUpPassword}
-                            />
+                                onMouseDown={(e) => e.preventDefault()}
+                                edge="end"
+                            >
+                                <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} />
+                            </IconButton>
                         </InputAdornment>
                     }
                 />
-                {paciente.password.error && (
-                    <FormHelperText error>Debe ingresar una contraseña</FormHelperText>
+                {password.error && (
+                    <FormHelperText>Debe ingresar una contraseña</FormHelperText>
                 )}
             </FormControl>
         </Grid>
     );
-};
+});
+
+PasswordInput.displayName = "PasswordInput";

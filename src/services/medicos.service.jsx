@@ -2,17 +2,8 @@ import api from "./auth.service"; // Instancia con Interceptor de API KEY y Base
 
 //------------------------------------------------------------------------------
 export const listarMedicos = async () => {
-    try {
-        const response = await api.get('/Medico/get-all-doctors');
-        console.log('listarMedicos', response.data);
-        return response.data;
-    } catch (error) {
-        console.error('Error obteniendo datos de Médicos: ', error);
-        return {
-            status: error.response?.status,
-            statusText: error.response?.data?.message || 'Error de conexión'
-        };
-    }
+    const response = await api.get('/Medico');
+    return response.data;
 };
 
 //------------------------------------------------------------------------------
@@ -73,12 +64,13 @@ export const modificarMedico = async (id, medico) => {
 //------------------------------------------------------------------------------
 export const borrarMedico = async (id) => {
     try {
-        return await api.delete(`/Medico/${id}`);
+        const res = await api.delete(`/Medico/${id}`);
+        return res.data || '1'; 
     } catch (error) {
-        console.error('Error borrando registro de Médico: ', error);
-        return {
-            status: error.response?.status,
-            statusText: error.response?.data?.message
+        // Si el backend responde con error (ej: tiene turnos reales), capturamos el mensaje
+        return { 
+            status: error.response?.status, 
+            statusText: error.response?.data?.message || "Error al eliminar" 
         };
     }
 };
@@ -100,13 +92,11 @@ export const cantidadMedicos = async () => {
 //------------------------------------------------------------------------------
 export const obtenerHorarioMedico = async (id) => {
     try {
-        const response = await api.get(`/Medico/get-schedule/${id}`);
+        // Agregamos timestamp para que el RELOJ sea real siempre
+        const response = await api.get(`/Medico/get-schedule/${id}?t=${Date.now()}`);
         return response.data;
     } catch (error) {
-        console.error('Error obteniendo horario Médico: ', error);
-        return {
-            status: error.response?.status,
-            statusText: error.response?.data?.message || error.response?.data?.errorMessage
-        };
+        console.error('Error obteniendo horario: ', error);
+        return null;
     }
 };

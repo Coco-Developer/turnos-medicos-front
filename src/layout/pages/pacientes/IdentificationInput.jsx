@@ -1,24 +1,36 @@
-import React from "react";
-import {TextField, Tooltip} from "@mui/material";
-import Grid from '@mui/material/Grid';
-import {handleValidation} from "./FnGen";
+import React, { memo } from "react";
+import { TextField, Grid } from "@mui/material";
 
-export const IdentificationInput = ({ paciente, setPaciente, onChange }) => {
+/**
+ * Al pasarle solo 'dni', 'onChange' y 'onBlur', React Memo
+ * realmente puede comparar si el valor cambió y evitar renders inútiles.
+ */
+export const IdentificationInput = memo(({ dni, onChange, onBlur }) => {
+    
     return (
-        <Grid size={{ xs: 12, md: 6 }}>
+        <Grid item xs={12} md={6}>
             <TextField
-                name={paciente.dni.campo}
+                name="dni" // Nombre del campo directo
                 label="DNI"
                 variant="outlined"
                 fullWidth
                 margin="normal"
-                required={paciente.dni.requerido}
+                type="number" // Asegura que solo entren números
+                required={dni.requerido}
                 onChange={onChange}
-                onBlur={handleValidation(paciente, setPaciente)}
-                value={paciente.dni.dato}
-                error={paciente.dni.error}
-                helperText={paciente.dni.error ? "Debe ingresar el número de documento" : "También usado como nombre de Usuario. Solo ingresar números."}
+                onBlur={onBlur} // La función viene pre-configurada del padre
+                value={dni.dato}
+                error={dni.error}
+                helperText={
+                    dni.error 
+                        ? "Debe ingresar el número de documento" 
+                        : "También usado como nombre de Usuario. Solo ingresar números."
+                }
+                // Evita que el label se pise con el número al cargar datos
+                InputLabelProps={{ shrink: true }}
             />
         </Grid>
     );
-};
+});
+
+IdentificationInput.displayName = "IdentificationInput";

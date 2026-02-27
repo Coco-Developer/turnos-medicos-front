@@ -34,16 +34,17 @@ export const FormActions = ({ onSubmit,  loading}) => {
 
     // Efecto para cerrar el snackbar y navegar después de 2 segundos
     useEffect(() => {
-        // Si el snackbar está abierto Y la acción es 'alta', redirige a href
-        if (snackData.open && (snackData.action === 'alta' || snackData.action === 'mod')) {
-            const timeout = setTimeout(() => {
-                setSnackData((prev) => ({ ...prev, open: false }));
-                    navigate(snackData.href);
-            }, 2000);
+    if (snackData.open && (snackData.action === 'alta' || snackData.action === 'mod')) {
+        const timeout = setTimeout(() => {
+            // PRIMERO: Cerramos el snack localmente
+            setSnackData((prev) => ({ ...prev, open: false }));
+            // SEGUNDO: Navegamos
+            navigate(snackData.href);
+        }, 2000);
 
-            return () => clearTimeout(timeout); // Limpia el timeout si el componente se desmonta
-        }
-    }, [snackData.open]); // Se ejecuta cada vez que snackData.open cambia
+        return () => clearTimeout(timeout);
+    }
+}, [snackData.open, navigate, snackData.action, snackData.href]);
 
     //**************************************************************************
     //**************************************************************************

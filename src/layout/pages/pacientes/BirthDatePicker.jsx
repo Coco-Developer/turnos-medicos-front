@@ -1,50 +1,66 @@
-import React, { useState, useMemo } from "react";
-import { LocalizationProvider, DatePicker } from "@mui/x-date-pickers";
-import Grid from '@mui/material/Grid';
+import React, { useState, useMemo, memo } from "react";
+import { DatePicker, LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import { Grid } from "@mui/material";
 import dayjs from "dayjs";
+import "dayjs/locale/es";
 
-export const BirthDatePicker = ({ paciente, setPaciente }) => {
-    const [dateError, setDateError] = useState();
+// Mover la configuración de locale fuera del render para evitar re-ejecuciones
+dayjs.locale("es");
 
-    const handleDateChange = (dte, nme) => {
-        const pac = { ...paciente[nme], ...{ dato: dte?.$d } };
-        setPaciente({ ...paciente, [nme]: pac });
+export const BirthDatePicker = memo(({ fechanacimiento, setPaciente }) => {
+    const [dateError, setDateError] = useState(null);
+
+    const handleDateChange = (newDate) => {
+        // Validación básica: si es una fecha inválida de dayjs, no actualizamos el 'dato'
+        // pero sí podemos marcar que hay un error.
+        const isValid = newDate === null || (dayjs(newDate).isValid() && !dayjs(newDate).isAfter(dayjs()));
+
+        setPaciente(prev => ({
+            ...prev,
+            fechanacimiento: { 
+                ...prev.fechanacimiento, 
+                dato: newDate, 
+                error: !isValid || (!newDate && prev.fechanacimiento.requerido)
+            }
+        }));
     };
 
-    const dateErrorMessage = useMemo(() => {
-        switch (dateError) {
-            case 'maxDate':
-            case 'minDate':
-                return 'Este dato es obligatorio.';
-            case 'invalidDate':
-                return 'Fecha no válida.';
-            default:
-                return '';
-        }
-    }, [dateError]);
+    const errorMessage = useMemo(() => {
+        if (dateError === 'invalidDate') return 'Fecha no válida.';
+        if (dateError === 'disableFuture') return 'No puede ser una fecha futura.';
+        if (fechanacimiento.error && !fechanacimiento.dato) return 'La fecha es obligatoria.';
+        return '';
+    }, [dateError, fechanacimiento.error, fechanacimiento.dato]);
 
     return (
-        <Grid size={{ xs: 12, md: 6 }}>
+        <Grid item xs={12} md={6}>
+            {/* El LocalizationProvider debería envolver idealmente toda la App, 
+                pero si lo dejas aquí, asegúrate que el adapter esté bien configurado */}
             <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="es">
                 <DatePicker
-                    name={paciente.fechanacimiento.campo}
                     label="Fecha de Nacimiento"
-                    variant="outlined"
-                    fullWidth
-                    margin="normal"
-                    required={paciente.fechanacimiento.requerido}
+                    // Nos aseguramos de que el valor sea siempre un objeto dayjs o null
+                    value={fechanacimiento.dato ? dayjs(fechanacimiento.dato) : null}
+                    onChange={handleDateChange}
                     disableFuture
-                    onChange={(date) => handleDateChange(date, paciente.fechanacimiento.campo)}
-                    value={paciente.fechanacimiento.dato ? dayjs(paciente.fechanacimiento.dato) : null}
                     onError={(newError) => setDateError(newError)}
                     slotProps={{
                         textField: {
-                            helperText: paciente.fechanacimiento.error ? dateErrorMessage : '',
+                            fullWidth: true,
+                            margin: "normal",
+                            error: !!dateError || fechanacimiento.error,
+                            helperText: errorMessage,
+                            InputLabelProps: { shrink: true },
+                            // Evitamos que el usuario escriba cualquier cosa manualmente
+                            // si prefieres que solo use el calendario:
+                            // readOnly: true 
                         },
                     }}
                 />
             </LocalizationProvider>
         </Grid>
     );
-};
+});
+
+BirthDatePicker.displayName = "BirthDatePicker";

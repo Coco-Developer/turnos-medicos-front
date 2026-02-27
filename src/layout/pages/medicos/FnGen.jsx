@@ -1,15 +1,28 @@
 import dayjs from "dayjs";
 import { crearMedico, modificarMedico } from "../../../services/medicos.service";
-import { useSnack } from "../../context/SnackContext";
-import { DATE_FORMAT, DAYSMAP } from "../../libs/constants";
+import { DAYSMAP } from "../../libs/constants";
 
-export const handleValidation = (medico, setMedico) => (e) => {
-    const isValid = !(e.target.value === '');
-    const med = { ...medico[e.target.name], error: !isValid };
-    setMedico({ ...medico, [e.target.name]: med });
+/**
+ * HandleValidation Normalizado
+ */
+export const handleValidation = (estadoLocal, setMedico) => (e) => {
+    const { name, value } = e.target;
+    const isValid = value !== '';
+    
+    setMedico((prev) => ({
+        ...prev,
+        [name]: { 
+            ...prev[name], 
+            error: !isValid 
+        }
+    }));
+    
     return isValid;
 };
 
+/**
+ * Lógica de validación interna
+ */
 const validateForm = (medico, defaultValues) => {
     let allOK = true;
     let updated = { ...medico };
@@ -19,17 +32,17 @@ const validateForm = (medico, defaultValues) => {
         let isNotValid = false;
         let errorCode = null;
 
-        if (value.requerido && value.dato === "") {
+        if (value?.requerido && (value.dato === "" || value.dato === null)) {
             isNotValid = true;
             errorCode = "required";
         }
 
-        if (key.startsWith("horarioatencion_") && value.dato) {
+        if (key.startsWith("horarioatencion_") && value?.dato) {
             const asDayjs = dayjs(value.dato).second(0).millisecond(0);
             if (!asDayjs.isValid()) {
                 isNotValid = true;
                 errorCode = "invalidDate";
-            } else {
+            } else if (defaultValues?.minTime && defaultValues?.maxTime) {
                 const min = defaultValues.minTime.second(0).millisecond(0);
                 const max = defaultValues.maxTime.second(0).millisecond(0);
                 if (asDayjs.isBefore(min) || asDayjs.isAfter(max)) {
@@ -43,7 +56,7 @@ const validateForm = (medico, defaultValues) => {
         if (isNotValid) allOK = false;
     }
 
-    // 2. Validación de pares inicio–fin por día de semana (TU LÓGICA ORIGINAL)
+    // 2. Validación de pares inicio–fin por día
     Object.keys(DAYSMAP).forEach(dayKey => {
         const iniKey = `horarioatencion_${dayKey}_inicio`;
         const finKey = `horarioatencion_${dayKey}_fin`;
@@ -55,62 +68,57 @@ const validateForm = (medico, defaultValues) => {
 
         if (mismatch) {
             allOK = false;
+            updated[iniKey].error = true;
+            updated[finKey].error = true;
+            updated[iniKey].errorCode = "pairMismatch";
+            updated[finKey].errorCode = "pairMismatch";
         } else if (inicio && fin) {
             const iniDay = dayjs(inicio);
             const finDay = dayjs(fin);
             if (iniDay.isAfter(finDay)) {
-                const tmp = inicio;
-                inicio = fin;
-                fin = tmp;
+                allOK = false;
+                updated[iniKey].error = true;
+                updated[finKey].error = true;
+                updated[iniKey].errorCode = "invalidRange";
             }
         }
-
-        updated[iniKey] = {
-            ...updated[iniKey],
-            dato: inicio,
-            error: mismatch || updated[iniKey].error,
-            errorCode: mismatch ? "pairMismatch" : updated[iniKey].errorCode
-        };
-        updated[finKey] = {
-            ...updated[finKey],
-            dato: fin,
-            error: mismatch || updated[finKey].error,
-            errorCode: mismatch ? "pairMismatch" : updated[finKey].errorCode
-        };
     });
 
-    // 3. Validación: al menos un día completo (TU LÓGICA ORIGINAL)
+    // 3. Validación: al menos un día completo
     const tieneAlMenosUnDia = Object.keys(DAYSMAP).some(dayKey => {
         const iniKey = `horarioatencion_${dayKey}_inicio`;
         const finKey = `horarioatencion_${dayKey}_fin`;
-        return updated[iniKey]?.dato && updated[finKey]?.dato;
+        return updated[iniKey]?.dato && updated[finKey]?.dato && !updated[iniKey].error;
     });
 
     if (!tieneAlMenosUnDia) {
         allOK = false;
         Object.keys(DAYSMAP).forEach(dayKey => {
-            updated[`horarioatencion_${dayKey}_inicio`].error = true;
-            updated[`horarioatencion_${dayKey}_fin`].error = true;
-            updated[`horarioatencion_${dayKey}_inicio`].errorCode = "noWorkingDay";
+            if (!updated[`horarioatencion_${dayKey}_inicio`].dato) {
+                updated[`horarioatencion_${dayKey}_inicio`].error = true;
+                updated[`horarioatencion_${dayKey}_inicio`].errorCode = "noWorkingDay";
+            }
         });
     }
 
     return { allOK, updated };
 };
 
-export const SubmitForm = (medico, setMedico, idMedicoMod, setSaving, defValues) => {
-    const { setSnackData } = useSnack();
-
+/**
+ * Submit principal 
+ * Recibe setSnackData por parámetro para evitar errores de Hook
+ */
+export const SubmitForm = (medico, setMedico, idMedicoMod, setSaving, defValues, navigate, setSnackData) => {
+    
     return async (event) => {
-        event.preventDefault();
+        if (event) event.preventDefault();
+        
         const { allOK, updated } = validateForm(medico, defValues);
         setMedico(updated);
 
         if (allOK) {
             setSaving(true);
             
-            // --- CONSTRUCCIÓN DEL OBJETO NORMALIZADO ---
-            // Usamos PascalCase para coincidir con el Backend C#
             let medDto = {
                 Id: parseInt(idMedicoMod),
                 Apellido: updated.apellido.dato,
@@ -125,7 +133,6 @@ export const SubmitForm = (medico, setMedico, idMedicoMod, setSaving, defValues)
                 Horarios: []
             };
 
-            // Mapeo de horarios preservando tu estructura de DAYSMAP
             Object.keys(DAYSMAP).forEach(dayKey => {
                 const ini = updated[`horarioatencion_${dayKey}_inicio`].dato;
                 const fin = updated[`horarioatencion_${dayKey}_fin`].dato;
@@ -146,14 +153,19 @@ export const SubmitForm = (medico, setMedico, idMedicoMod, setSaving, defValues)
                     : await modificarMedico(idMedicoMod, medDto);
 
                 setSaving(false);
+
                 if (r.status === 200 || r.status === 201) {
                     setSnackData({
-                        duration: 8000,
+                        duration: 3000,
                         type: 'success',
-                        message: 'Guardado correctamente. Volviendo...',
+                        message: 'Guardado correctamente. Redirigiendo...',
                         open: true,
-                        href: '/medicos'
                     });
+
+                    setTimeout(() => {
+                        if (navigate) navigate('/medicos');
+                    }, 1500);
+
                 } else {
                     setSnackData({
                         type: 'error',

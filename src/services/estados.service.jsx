@@ -5,16 +5,13 @@ import api from "./auth.service"; // Instancia centralizada y blindada
 export const listarEstados = async () => {
     try {
         const response = await api.get('/Estado');
-        return response.data;
+        // El repositorio de C# envía el array directamente en el body
+        return Array.isArray(response.data) ? response.data : [];
     } catch (error) {
-        console.error('Error obteniendo datos de Estados: ', error);
-        return {
-            status: error.response?.status || 500,
-            statusText: error.response?.data?.message || 'Error al conectar con el servidor'
-        };
+        console.error('Error en listarEstados:', error);
+        return []; 
     }
 };
-
 //------------------------------------------------------------------------------
 // Obtener un estado por ID
 export const obtenerEstado = async (id) => {

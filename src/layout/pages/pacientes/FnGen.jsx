@@ -1,110 +1,152 @@
-import { crearPaciente, modificarPaciente, obtenerPacientePorDNI } from "../../../services/pacientes.service";
-import { useSnack } from "../../context/SnackContext";
 import dayjs from "dayjs";
+import { crearPaciente, modificarPaciente, obtenerPacientePorDNI } from "../../../services/pacientes.service";
 
-// Maneja la validación en tiempo real de cada input
-export const handleValidation = (paciente, setPaciente) => (e) => {
-    const isValid = !(e.target.value === '');
-    const pac = { ...paciente[e.target.name], error: !isValid };
-    setPaciente({ ...paciente, [e.target.name]: pac });
-    return isValid;
+/**
+ * Valida un campo individual (utilizado en onBlur para feedback inmediato)
+ */
+export const handleValidation = (paciente, setPaciente, e) => {
+    const { name, value } = e.target;
+    const field = paciente[name];
+    if (!field) return;
+
+    let isValid = true;
+
+    // Validación de requeridos
+    if (field.requerido && value.trim() === '') {
+        isValid = false;
+    }
+
+    // Validación específica de formato de Email
+    if (name === 'email' && value.trim() !== '') {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(value)) {
+            isValid = false;
+        }
+    }
+
+    setPaciente(prev => ({
+        ...prev,
+        [name]: { ...prev[name], error: !isValid }
+    }));
 };
 
-// Valida todo el formulario antes de enviar
+/**
+ * Valida todo el formulario antes del submit
+ */
 const validateForm = (paciente, setPaciente) => {
     let allOK = true;
     const nuevosDatos = { ...paciente };
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
     for (const [key, value] of Object.entries(paciente)) {
+        let errorEnCampo = false;
+
+        // 1. Validar requeridos
         if (value.requerido) {
-            const isNotValid = (value.dato === '' || value.dato == null);
-            if (isNotValid) {
-                allOK = false;
-                nuevosDatos[key] = { ...value, error: true };
-            }
+            const isInvalid = !value.dato || (typeof value.dato === 'string' && value.dato.trim() === '');
+            if (isInvalid) errorEnCampo = true;
+        }
+
+        // 2. Validar formato de email específicamente
+        if (key === 'email' && value.dato) {
+            if (!emailRegex.test(value.dato)) errorEnCampo = true;
+        }
+
+        if (errorEnCampo) {
+            allOK = false;
+            nuevosDatos[key] = { ...value, error: true };
         }
     }
     
-    // Actualizamos el estado una sola vez con todos los errores encontrados
     if (!allOK) setPaciente(nuevosDatos);
     return allOK;
-}
+};
 
-export const SubmitForm = (paciente, setPaciente, idPacienteMod, setSaving) => {
-    const { setSnackData } = useSnack();
-    
-    return async (event) => { // Usamos async/await para que sea más legible que los .then()
+/**
+ * Función principal de envío de formulario
+ */
+export const SubmitForm = (paciente, setPaciente, idPacienteMod, setSaving, setSnackData, navigate) => {
+    return async (event) => {
         event.preventDefault();
-        
+
+        // 1. Validar campos
         if (!validateForm(paciente, setPaciente)) {
-            setSnackData({ type: 'error', message: 'Verifique los campos obligatorios.', open: true });
+            setSnackData({ 
+                type: 'error', 
+                message: 'Verifique los campos obligatorios o el formato del email.', 
+                open: true 
+            });
             return;
         }
 
         setSaving(true);
-        
-        // --- PREPARACIÓN DEL DTO PARA C# ---
+
+        // 2. Preparar DTO para el Backend (C# utiliza PascalCase)
         let pacDto = {};
-        for (const [key, value] of Object.entries(paciente)) {
+        Object.entries(paciente).forEach(([key, value]) => {
+            // Capitalizar la primera letra (nombre -> Nombre)
             const keyUpper = key.charAt(0).toUpperCase() + key.slice(1);
             
             if (key.toLowerCase() === 'fechanacimiento') {
-                // Si la fecha es inválida o nula, mandamos null, sino el formato ISO
                 pacDto[keyUpper] = value.dato ? dayjs(value.dato).format('YYYY-MM-DD') : null;
             } else {
                 pacDto[keyUpper] = value.dato;
             }
-        }
+        });
 
         try {
+            let res;
             if (idPacienteMod === 0) {
-                // 1. Verificar DNI
-                const resDni = await obtenerPacientePorDNI(pacDto.Dni);
-                
-                // Si r.status es undefined o 200, significa que encontró un paciente (DNI ocupado)
-                if (resDni && (resDni.status === 200 || resDni.id)) {
-                    setSnackData({ 
-                        type: 'error', 
-                        message: `El DNI ${pacDto.Dni} ya está registrado.`, 
-                        open: true 
-                    });
-                    setSaving(false);
-                    return;
+                // Verificar DNI duplicado antes de Crear
+                try {
+                    const resDni = await obtenerPacientePorDNI(pacDto.Dni);
+                    if (resDni && (resDni.status === 200 || resDni.id)) {
+                        setSnackData({ 
+                            type: 'error', 
+                            message: `El DNI ${pacDto.Dni} ya está registrado en el sistema.`, 
+                            open: true 
+                        });
+                        setSaving(false);
+                        return;
+                    }
+                } catch (e) {
+                    // Si el error es 404 (No encontrado), el DNI está disponible, continuamos.
+                    if (e.response?.status !== 404) console.warn("DNI check bypass o error menor");
                 }
 
-                // 2. Crear Paciente
-                const resCreate = await crearPaciente(pacDto);
-                if (resCreate.status === 200 || resCreate.status === 201) {
-                    setSnackData({
-                        type: 'success',
-                        message: '¡Paciente guardado con éxito!',
-                        open: true,
-                        href: "/pacientes"
-                    });
-                } else {
-                    // Si el backend mandó un error (ej: 400), mostramos el mensaje que viene del back
-                    const msg = resCreate.data?.message || 'Error al guardar el paciente.';
-                    setSnackData({ type: 'error', message: msg, open: true });
-                }
+                res = await crearPaciente(pacDto);
             } else {
-                // 3. Modificar Paciente
-                const resUpdate = await modificarPaciente(idPacienteMod, pacDto);
-                if (resUpdate.status === 200) {
-                    setSnackData({
-                        type: 'success',
-                        message: 'Datos actualizados correctamente.',
-                        open: true,
-                        href: "/pacientes"
-                    });
-                } else {
-                    setSnackData({ type: 'error', message: 'Error al actualizar.', open: true });
-                }
+                // Modificar existente
+                res = await modificarPaciente(idPacienteMod, pacDto);
+            }
+
+            // 3. Manejar Respuesta Exitosa
+            if (res.status === 200 || res.status === 201) {
+                setSnackData({
+                    type: 'success',
+                    message: idPacienteMod === 0 
+                        ? '¡Paciente creado! Redireccionando a la lista...' 
+                        : '¡Cambios guardados! Volviendo a la lista...',
+                    open: true
+                });
+                
+                // Redirección con delay para lectura del usuario
+                setTimeout(() => {
+                    navigate("/pacientes");
+                }, 1800);
+            } else {
+                const errorMsg = res.data?.message || 'Error en la operación del servidor.';
+                setSnackData({ type: 'error', message: errorMsg, open: true });
+                setSaving(false);
             }
         } catch (error) {
-            console.error("Error en SubmitForm:", error);
-            setSnackData({ type: 'error', message: 'Error de conexión con el servidor.', open: true });
-        } finally {
+            console.error("Error en Submit:", error);
+            setSnackData({ 
+                type: 'error', 
+                message: 'No se pudo conectar con el servidor. Intente más tarde.', 
+                open: true 
+            });
             setSaving(false);
         }
     };
-}
+};
