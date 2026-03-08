@@ -1,127 +1,127 @@
-import { useEffect, useMemo, useState } from "react";
-import { styled } from "@mui/material";
-import Grid from '@mui/material/Grid';
-import {
-    LocalizationProvider,
-    PickersDay,
-    renderTimeViewClock,
-    StaticDatePicker,
-    StaticTimePicker
-} from "@mui/x-date-pickers";
-import { esES } from '@mui/x-date-pickers/locales';
+import React, { memo, useMemo } from "react";
+import { LocalizationProvider, StaticDatePicker, StaticTimePicker, renderTimeViewClock } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import { Grid, Typography, Box } from "@mui/material";
 import dayjs from "dayjs";
-import Typography from "@mui/material/Typography";
-import { DATE_FORMAT, TIME_FORMAT } from "../../libs/constants";
+import "dayjs/locale/es";
 
-export const FechaHoraPicker = ({ turno, fecha, medicoHor, horarioSemanal, highlightedDays, horasConTurno, timeError, setTimeError, onChangeDate, onChangeTime }) => {
-    const hoy = dayjs();
-    
-    const [medicoHorario, setMedicoHorario] = useState({
-        minTime: null,
-        maxTime: null,
-    });
+export const FechaHoraPicker = memo(({
+    turno,
+    fecha,
+    horarioMedico,
+    horarioSemanal = [],
+    unavailableTimes = [],
+    disabled = false,
+    onChangeDate,
+    onChangeTime
+}) => {
+    const blockedTimes = useMemo(() => new Set(unavailableTimes), [unavailableTimes]);
 
-    // Sincronizar el horario permitido según el día seleccionado
-    useEffect(() => {
-        const dte = dayjs(turno.fecha.dato || fecha);
-        if (dte.isValid() && horarioSemanal.length > 0) {
-            const diaSemana = dte.day() === 0 ? 7 : dte.day();
-            const diaAtencion = horarioSemanal.find(d => d.diaSemana === diaSemana);
+    const timeValue = useMemo(() => {
+        if (!turno.hora.dato) return null;
+        const parsed = dayjs(turno.hora.dato);
+        return parsed.isValid() ? parsed : null;
+    }, [turno.hora.dato]);
 
-            if (diaAtencion?.hora_atencion_inicio && diaAtencion?.hora_atencion_fin) {
-                setMedicoHorario({
-                    minTime: dayjs(diaAtencion.hora_atencion_inicio, 'HH:mm:ss'),
-                    maxTime: dayjs(diaAtencion.hora_atencion_fin, 'HH:mm:ss'),
-                });
-            } else {
-                setMedicoHorario({ minTime: null, maxTime: null });
-            }
+    const dateValue = useMemo(() => {
+        const parsed = turno.fecha.dato ? dayjs(turno.fecha.dato) : dayjs(fecha);
+        return parsed.isValid() ? parsed : dayjs();
+    }, [turno.fecha.dato, fecha]);
+
+    const shouldDisableDate = (date) => {
+        if (disabled) return true;
+        const dayIndex = date.day() === 0 ? 7 : date.day();
+        const diaAgenda = horarioSemanal.find((d) => Number(d.diaSemana) === dayIndex);
+        return !(diaAgenda?.horarioAtencionInicio && diaAgenda?.horarioAtencionFin);
+    };
+
+    const shouldDisableTime = (value, view) => {
+        if (!horarioMedico?.horaInicio || !horarioMedico?.horaFin) return true;
+
+        const [hInicio, mInicio] = horarioMedico.horaInicio.split(":").map(Number);
+        const [hFin, mFin] = horarioMedico.horaFin.split(":").map(Number);
+
+        if (view === "hours") {
+            const hora = value.hour();
+            return hora < hInicio || hora > hFin;
         }
-    }, [horarioSemanal, turno.fecha.dato, fecha]);
 
-    const disableThisDay = (date) => {
-        const diaSemana = date.day() === 0 ? 7 : date.day();
-        const dia = horarioSemanal.find(d => d.diaSemana === diaSemana);
-        return !dia || dia.hora_atencion_inicio === null;
-    };
+        if (view === "minutes") {
+            const hora = value.hour();
+            const minuto = value.minute();
 
-    const disableThisTimes = (timeValue) => {
-        if (!medicoHorario.minTime || !medicoHorario.maxTime) return true;
-        const horaStr = timeValue.format(TIME_FORMAT);
-        return horasConTurno?.includes(horaStr) ?? false;
-    };
+            if (hora === hInicio && minuto < mInicio) return true;
+            if (hora === hFin && minuto > mFin) return true;
 
-    const HighlightedDay = styled(PickersDay, {
-        shouldForwardProp: (prop) => prop !== 'isActuallySelected',
-    })(({ theme, isActuallySelected }) => ({
-        ...(isActuallySelected && {
-            backgroundColor: theme.palette.primary.main,
-            color: theme.palette.primary.contrastText,
-            '&:hover': { backgroundColor: theme.palette.primary.dark },
-        }),
-        "&.Mui-selected": {
-            backgroundColor: theme.palette.secondary.main,
-            color: theme.palette.secondary.contrastText,
-        },
-    }));
+            const hhmm = `${String(hora).padStart(2, "0")}:${String(minuto).padStart(2, "0")}`;
+            return blockedTimes.has(hhmm);
+        }
 
-    const renderDay = (props) => {
-        const { highlightedDays = [], day, outsideCurrentMonth, ...other } = props;
-        const dateStr = day.format(DATE_FORMAT);
-        const isHighlighted = !outsideCurrentMonth && highlightedDays.includes(dateStr);
-        const isActuallySelected = !outsideCurrentMonth && dateStr === dayjs(turno.fecha.dato).format(DATE_FORMAT);
-
-        return (
-            <HighlightedDay
-                {...other}
-                day={day}
-                outsideCurrentMonth={outsideCurrentMonth}
-                selected={isHighlighted}
-                isActuallySelected={isActuallySelected}
-            />
-        );
+        return false;
     };
 
     return (
         <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="es">
-            <Grid container spacing={2}>
-                <Grid item xs={12} md={6}>
-                    <StaticDatePicker
-                        displayStaticWrapperAs="desktop"
-                        value={dayjs(turno.fecha.dato)}
-                        onChange={onChangeDate}
-                        maxDate={hoy.add(2, "month")}
-                        slots={{ day: renderDay }}
-                        slotProps={{
-                            day: { highlightedDays },
-                            actionBar: { actions: ['today'] },
-                        }}
-                        shouldDisableDate={disableThisDay}
-                    />
+            <Grid container spacing={3}>
+                <Grid item xs={12} xl={6}>
+                    <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 700, color: "primary.main" }}>
+                        1. Seleccione Fecha
+                    </Typography>
+                    <Box sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2 }}>
+                        <StaticDatePicker
+                            displayStaticWrapperAs="desktop"
+                            value={dateValue}
+                            onChange={(newDate) => {
+                                if (!newDate || shouldDisableDate(newDate)) return;
+                                onChangeDate(newDate);
+                            }}
+                            shouldDisableDate={shouldDisableDate}
+                            disabled={disabled}
+                            slotProps={{
+                                toolbar: { hidden: true },
+                                actionBar: { actions: [] }
+                            }}
+                        />
+                    </Box>
                 </Grid>
-                <Grid item xs={12} md={6}>
-                    <StaticTimePicker
-                        disabled={!medicoHorario.minTime}
-                        value={turno.hora.dato ? dayjs(turno.hora.dato) : null}
-                        onChange={(time) => onChangeTime(time, 'hora')}
-                        viewRenderers={{ hours: renderTimeViewClock }}
-                        views={['hours']}
-                        ampm={false}
-                        shouldDisableTime={disableThisTimes}
-                        minTime={medicoHorario.minTime}
-                        maxTime={medicoHorario.maxTime}
-                        slotProps={{
-                            actionBar: { actions: ['clear'] },
+
+                <Grid item xs={12} xl={6}>
+                    <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 700, color: "primary.main" }}>
+                        2. Seleccione Hora
+                    </Typography>
+                    <Box
+                        sx={{
+                            border: "1px solid",
+                            borderColor: "divider",
+                            borderRadius: 2,
+                            overflow: "hidden",
+                            bgcolor: "background.paper",
+                            "& .Mui-disabled": {
+                                backgroundColor: "rgba(0, 0, 0, 0.04)"
+                            }
                         }}
-                    />
-                    {turno.hora.error && (
-                        <Typography color="error" variant="caption" sx={{ ml: 2 }}>
-                            Horario no disponible o fuera de rango.
-                        </Typography>
-                    )}
+                    >
+                        <StaticTimePicker
+                            ampm={false}
+                            value={timeValue}
+                            onChange={(newValue) => onChangeTime(newValue, "hora")}
+                            shouldDisableTime={shouldDisableTime}
+                            timeSteps={{ minutes: 30 }}
+                            disabled={disabled}
+                            viewRenderers={{
+                                hours: renderTimeViewClock,
+                                minutes: renderTimeViewClock
+                            }}
+                            slotProps={{
+                                actionBar: { actions: ["today"] },
+                                toolbar: { hidden: true }
+                            }}
+                        />
+                    </Box>
                 </Grid>
             </Grid>
         </LocalizationProvider>
     );
-};
+});
+
+FechaHoraPicker.displayName = "FechaHoraPicker";

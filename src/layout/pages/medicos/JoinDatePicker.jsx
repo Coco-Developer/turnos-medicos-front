@@ -1,12 +1,9 @@
-import React, { useState, useMemo, memo, useCallback } from "react";
-import Grid from '@mui/material/Grid';
-import { LocalizationProvider, DatePicker, TimePicker, renderTimeViewClock } from "@mui/x-date-pickers";
+import React, { useState, useMemo, memo } from "react";
+import { LocalizationProvider, DatePicker } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { esES } from '@mui/x-date-pickers/locales';
 import dayjs from "dayjs";
-import { Box, Typography, IconButton } from "@mui/material";
-import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
-import { DAYS } from "../../libs/constants";
+import { Box } from "@mui/material";
 
 // ==========================================
 // JOIN DATE PICKER
@@ -34,11 +31,12 @@ export const JoinDatePicker = memo(({ fechaaltalaboral, setMedico }) => {
     }, [dateError]);
 
     return (
-        <Grid size={{ xs: 12, md: 6 }}>
+        <Box sx={{ width: "100%" }}>
             <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="es" localeText={esES.components.MuiLocalizationProvider.defaultProps.localeText}>
                 <DatePicker
                     name={fechaaltalaboral.campo}
                     label="Fecha de Alta Laboral"
+                    format="DD/MM/YYYY"
                     sx={{ width: '100%', mt: 2, mb: 1 }}
                     required={fechaaltalaboral.requerido}
                     onChange={handleDateChange}
@@ -48,12 +46,13 @@ export const JoinDatePicker = memo(({ fechaaltalaboral, setMedico }) => {
                         textField: {
                             helperText: dateErrorMessage,
                             error: !!dateError || fechaaltalaboral.error,
-                            variant: "outlined"
+                            variant: "outlined",
+                            fullWidth: true
                         },
                     }}
                 />
             </LocalizationProvider>
-        </Grid>
+        </Box>
     );
 });
 

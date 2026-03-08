@@ -1,185 +1,257 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import Typography from "@mui/material/Typography";
-import Grid from '@mui/material/Grid';
+import Grid from "@mui/material/Grid";
 import Box from "@mui/material/Box";
-import { listarFechasConTurno, listarTurnosDeFecha } from "../../../services/turnos.service";
-import {DateSelector} from "./DateSelector";
-import {TurnosTable} from "./TurnosTable";
+import {
+    listarFechasConTurno,
+    listarTurnosDeFecha,
+    listarTurnos
+} from "../../../services/turnos.service";
+import { DateSelector } from "./DateSelector";
+import { TurnosTable } from "./TurnosTable";
 import dayjs from "dayjs";
-import {IconButton, LinearProgress, Tab, Tabs} from "@mui/material";
-import {faChevronLeft, faChevronRight, faClipboardList, faCalendarDays} from "@fortawesome/free-solid-svg-icons";
-import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
+import {
+    IconButton,
+    LinearProgress,
+    Tab,
+    Tabs,
+    TextField,
+    InputAdornment,
+    FormControlLabel,
+    Switch,
+    Stack,
+    Button,
+    Typography as MuiTypography
+} from "@mui/material";
+import { faChevronLeft, faChevronRight, faClipboardList, faCalendarDays, faMagnifyingGlass } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import PropTypes from "prop-types";
-import {TurnosCalendar} from "./TurnosCalendar";
-import {DATE_FORMAT} from "../../libs/constants";
-//------------------------------------------------------------------------------
-const TabPanel = (props) => {
-    const { children, value, index, ...other } = props;
+import { TurnosCalendar } from "./TurnosCalendar";
+import { DATE_FORMAT } from "../../libs/constants";
 
-    return (
-        <div
-            role="tabpanel"
-            hidden={value !== index}
-            id={`turnos-tabpanel-${index}`}
-            aria-labelledby={`turnos-tab-${index}`}
-            {...other}
-        >
-            {value === index && <>{children}</>}
-        </div>
-    );
-}
-//------------------------------------------------------------------------------
+const TabPanel = ({ children, value, index }) => {
+    if (value !== index) return null;
+    return <div role="tabpanel">{children}</div>;
+};
+
 TabPanel.propTypes = {
     children: PropTypes.node,
     index: PropTypes.number.isRequired,
     value: PropTypes.number.isRequired,
 };
-//------------------------------------------------------------------------------
-function a11yProps(index) {
-    return {
-        id: `turnos-tab-${index}`,
-        'aria-controls': `turnos-tabpanel-${index}`,
-    };
-}
-//------------------------------------------------------------------------------
+
+const normalizeText = (v) => (v || "").toString().toLowerCase().trim();
+
 const TurnosListPage = () => {
     const [fecha, setFecha] = useState(dayjs());
     const [data, setData] = useState([]);
+    const [highlightedDays, setHighlightedDays] = useState([]);
     const [loading, setLoading] = useState(false);
-    const [highlightedDays, setHighlitedDays] = useState([]);
-    const [estadosCargados, setEstadosCargados] = useState(false);
-    const [value, setValue] = useState(0);
-    //--------------------------------------------------------------------------
-    const handleTabChange = (event, newValue) => {
-        setValue(newValue);
-        loadDataAll(fecha);
-    };
-    //--------------------------------------------------------------------------
-    const loadDataAll = (dte = 0) => {
-        setLoading(true);
+    const [tabValue, setTabValue] = useState(0);
+    const [showAll, setShowAll] = useState(false);
+    const [query, setQuery] = useState("");
+    const [debouncedQuery, setDebouncedQuery] = useState("");
 
-        const dateToLoad = dte === 0 ? dayjs() : dayjs(dte);
+    const loadTurnos = useCallback(async (date, loadAll = false) => {
+        if (loadAll) {
+            const turnos = await listarTurnos();
+            setData(Array.isArray(turnos) ? turnos : []);
+            return;
+        }
+
+        const dateToLoad = dayjs(date);
         if (!dateToLoad.isValid()) {
-            setLoading(false);
+            setData([]);
             return;
         }
 
         const formattedDate = dateToLoad.format(DATE_FORMAT);
-        const month = dateToLoad.month() + 1;
+        const turnos = await listarTurnosDeFecha(formattedDate);
+        setData(Array.isArray(turnos) ? turnos : []);
+    }, []);
 
-        Promise.all([
-            listarTurnosDeFecha(formattedDate),
-            listarFechasConTurno(month),
-        ]).then(([turnos, fechasConTurno]) => {
-            setData(turnos);
-            const fechasMarcar = fechasConTurno.map(d => dayjs(d).format(DATE_FORMAT));
-            setHighlitedDays(fechasMarcar);
-        }).finally(() => {
-            setLoading(false);
-        });
-    };
-    //--------------------------------------------------------------------------
-    const loadDataFechasConTurno = (dte = 0) => {
-        const dateToLoad = dte === 0 ? dayjs() : dayjs(dte);
-
+    const loadFechasDelMes = useCallback(async (date) => {
+        const dateToLoad = dayjs(date);
         if (!dateToLoad.isValid()) {
-            setLoading(false);
+            setHighlightedDays([]);
             return;
         }
 
         const month = dateToLoad.month() + 1;
-        listarFechasConTurno(month).then(fechasConTurno => {
-            const fechasMarcar = fechasConTurno.map(d => dayjs(d).format(DATE_FORMAT));
-            setHighlitedDays(fechasMarcar);
-        });
-    };
-    //--------------------------------------------------------------------------
-    useEffect(() => {
-        if (estadosCargados) {
-            loadDataAll();
-        }
-    }, [estadosCargados]);
-    //--------------------------------------------------------------------------
-    const handleDateChange = (dte) => {
-        setFecha(dte);
-        loadDataAll(dayjs(dte).format(DATE_FORMAT));
-    };
-    //--------------------------------------------------------------------------
-    const handleMonthChange = (dte) => {
-        loadDataFechasConTurno(dayjs(dte).format(DATE_FORMAT));
-    }
-    //--------------------------------------------------------------------------
-    if (!data) return null;
+        const fechas = await listarFechasConTurno(month);
 
-    //**************************************************************************
-    //**************************************************************************
-    //**************************************************************************
+        const fechasFormateadas = Array.isArray(fechas)
+            ? fechas.map((d) => dayjs(d).format(DATE_FORMAT))
+            : [];
+
+        setHighlightedDays(fechasFormateadas);
+    }, []);
+
+    const loadAll = useCallback(async (date, loadAllMode = showAll) => {
+        setLoading(true);
+        try {
+            if (loadAllMode) {
+                await loadTurnos(date, true);
+                setHighlightedDays([]);
+            } else {
+                await Promise.all([
+                    loadTurnos(date, false),
+                    loadFechasDelMes(date)
+                ]);
+            }
+        } catch (err) {
+            console.error("Error cargando turnos:", err);
+            setData([]);
+            setHighlightedDays([]);
+        } finally {
+            setLoading(false);
+        }
+    }, [loadTurnos, loadFechasDelMes, showAll]);
+
+    useEffect(() => {
+        loadAll(fecha, showAll);
+    }, [showAll]);
+
+    useEffect(() => {
+        const timeout = setTimeout(() => {
+            setDebouncedQuery(query);
+        }, 350);
+
+        return () => clearTimeout(timeout);
+    }, [query]);
+
+    const handleDateChange = (newDate) => {
+        const parsed = dayjs(newDate);
+        setFecha(parsed);
+        if (!showAll) loadAll(parsed, false);
+    };
+
+    const handleMonthChange = (newDate) => {
+        if (!showAll) loadFechasDelMes(newDate);
+    };
+
+    const handleTabChange = (event, newValue) => {
+        setTabValue(newValue);
+    };
+
+    const searchIndex = useMemo(() => {
+        const base = Array.isArray(data) ? data : [];
+        return base.map((t) => {
+            const searchable = [
+                t.paciente || t.nombrePaciente,
+                t.medico || t.nombreMedico || t.doctor,
+                t.pacienteDni || t.dni || t.paciente_dni,
+                dayjs(t.fecha).isValid() ? dayjs(t.fecha).format("DD/MM/YYYY") : "",
+                t.hora
+            ].map(normalizeText).join(" ");
+            return { row: t, search: searchable };
+        });
+    }, [data]);
+
+    const filteredData = useMemo(() => {
+        const q = normalizeText(debouncedQuery);
+        if (!q) return searchIndex.map((x) => x.row);
+
+        return searchIndex
+            .filter((x) => x.search.includes(q))
+            .map((x) => x.row);
+    }, [searchIndex, debouncedQuery]);
+
     return (
-        <>
-            <Typography id="turnos-title" variant="h1" className="page-title" color="primary" tabIndex="-1">
+        <Box sx={{ p: { xs: 1.5, md: 3 }, width: "100%" }}>
+            <Typography variant="h1" className="page-title" color="primary" sx={{ mb: 3 }}>
                 Lista de Turnos
             </Typography>
-            {loading && <Box sx={{ width: '100%' }}><LinearProgress /></Box>}
 
-            <Tabs
-                value={value}
-                onChange={handleTabChange}
-                aria-label="Selector de vista"
-                sx={{
-                    "& button": {
-                        minWidth: '15rem',
-                    }
-                }}
-            >
-                <Tab icon={<FontAwesomeIcon icon={faClipboardList} size="lg" />} iconPosition="start" label="Detalle" {...a11yProps(0)} />
-                <Tab icon={<FontAwesomeIcon icon={faCalendarDays} size="lg" />} iconPosition="start" label="Resumen" {...a11yProps(1)} />
+            {loading && (
+                <Box sx={{ width: "100%" }}>
+                    <LinearProgress />
+                </Box>
+            )}
+
+            <Tabs value={tabValue} onChange={handleTabChange} sx={{ "& button": { minWidth: "15rem" } }}>
+                <Tab icon={<FontAwesomeIcon icon={faClipboardList} size="lg" />} iconPosition="start" label="Detalle" />
+                <Tab icon={<FontAwesomeIcon icon={faCalendarDays} size="lg" />} iconPosition="start" label="Resumen" />
             </Tabs>
 
-            <TabPanel value={value} index={0}>
-                <Grid
-                    container
-                    direction="row"
-                    alignItems="center"
-                    justifyContent="center"
-                    sx={{marginTop: '.5rem',
-                        paddingTop: '.5rem',
-                        backgroundColor: 'var(--fc-header-toolbar-bg-color)'}}
-                >
-                    <Grid size={1} sx={{textAlign: 'center'}}>
-                        <IconButton onClick={() => handleDateChange(dayjs(fecha).add(-1, 'day'))}>
-                            <FontAwesomeIcon icon={faChevronLeft} />
-                        </IconButton>
+            <TabPanel value={tabValue} index={0}>
+                <Stack direction={{ xs: "column", md: "row" }} spacing={2} sx={{ mt: 1, mb: 1, alignItems: { md: "center" } }}>
+                    <TextField
+                        fullWidth
+                        size="small"
+                        label="Buscar por paciente, DNI o medico"
+                        value={query}
+                        onChange={(e) => setQuery(e.target.value)}
+                        InputProps={{
+                            startAdornment: (
+                                <InputAdornment position="start">
+                                    <FontAwesomeIcon icon={faMagnifyingGlass} />
+                                </InputAdornment>
+                            )
+                        }}
+                    />
+                    <Button
+                        variant="outlined"
+                        onClick={() => setQuery("")}
+                        disabled={!query}
+                    >
+                        Limpiar
+                    </Button>
+                    <FormControlLabel
+                        control={<Switch checked={showAll} onChange={(e) => setShowAll(e.target.checked)} />}
+                        label="Ver todos"
+                    />
+                </Stack>
+                <MuiTypography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                    {filteredData.length} resultado(s)
+                </MuiTypography>
+
+                {!showAll && (
+                    <Grid
+                        container
+                        alignItems="center"
+                        justifyContent="center"
+                        sx={{ mt: 1, pt: 1, backgroundColor: "var(--fc-header-toolbar-bg-color)" }}
+                    >
+                        <Grid item xs={1} sx={{ textAlign: "center" }}>
+                            <IconButton onClick={() => handleDateChange(fecha.subtract(1, "day"))}>
+                                <FontAwesomeIcon icon={faChevronLeft} />
+                            </IconButton>
+                        </Grid>
+
+                        <Grid item xs={10} md={3} sx={{ textAlign: "center" }}>
+                            <DateSelector
+                                fecha={fecha}
+                                onDateChange={handleDateChange}
+                                onMonthChange={handleMonthChange}
+                                fechasconturno={highlightedDays}
+                            />
+                        </Grid>
+
+                        <Grid item xs={1} sx={{ textAlign: "center" }}>
+                            <IconButton onClick={() => handleDateChange(fecha.add(1, "day"))}>
+                                <FontAwesomeIcon icon={faChevronRight} />
+                            </IconButton>
+                        </Grid>
                     </Grid>
-                    <Grid size={{ xs: 10, md: 3 }} sx={{textAlign: 'center'}}>
-                        <DateSelector
-                            fecha={fecha}
-                            onDateChange={handleDateChange}
-                            onMonthChange={handleMonthChange}
-                            fechasconturno={highlightedDays}
-                        />
-                    </Grid>
-                    <Grid size={1} sx={{textAlign: 'center'}}>
-                        <IconButton onClick={() => handleDateChange(dayjs(fecha).add(1, 'day'))}>
-                            <FontAwesomeIcon icon={faChevronRight} />
-                        </IconButton>
-                    </Grid>
-                </Grid>
+                )}
+
                 <TurnosTable
                     fecha={fecha}
-                    data={data}
-                    loadData={loadDataAll}
-                    setEstadosCargados={setEstadosCargados}
+                    data={filteredData}
+                    loadData={() => loadAll(fecha, showAll)}
                 />
-            </TabPanel >
-            <TabPanel value={value} index={1}>
+            </TabPanel>
+
+            <TabPanel value={tabValue} index={1}>
                 <TurnosCalendar
                     key={fecha.format(DATE_FORMAT)}
                     dte={fecha}
                     handleDateChange={handleDateChange}
-                    setTabValue={setValue}
+                    setTabValue={setTabValue}
                 />
             </TabPanel>
-        </>
+        </Box>
     );
 };
 

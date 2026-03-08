@@ -1,15 +1,17 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
-import Typography from "@mui/material/Typography";
-import { Paper } from "@mui/material";
-import Grid from '@mui/material/Grid';
+import { useParams, useNavigate } from "react-router-dom";
+import { Typography, Paper, Grid, Box, Container, Avatar, Stack, Divider } from "@mui/material";
+import MedicalServicesIcon from '@mui/icons-material/MedicalServices';
+
+// Servicios y Lógica
 import { obtenerEspecialidad } from "../../../services/especialidades.service";
-import {NombreEspecialidadInput} from "./NombreEspecialidadInput";
-import {FormActions} from "../../elements/FormActions";
-import {SubmitForm} from "./FnGen";
-//==============================================================================
+import { NombreEspecialidadInput } from "./NombreEspecialidadInput";
+import { FormActions } from "../../elements/FormActions";
+import { SubmitForm } from "./FnGen";
+
 const EspecialidadesFormPage = () => {
     const { id } = useParams();
+    const navigate = useNavigate();
     const idEspecialidadMod = id === undefined ? 0 : id;
     const [saving, setSaving] = useState(false);
 
@@ -25,62 +27,86 @@ const EspecialidadesFormPage = () => {
 
     const [especialidad, setEspecialidad] = useState(datosIniciales);
 
-    const cargarEspecialidad = (id) => {
-        if (id !== 0) {
-            obtenerEspecialidad(id).then((r) => {
-                const dat = {
+    useEffect(() => {
+        if (idEspecialidadMod !== 0) {
+            obtenerEspecialidad(idEspecialidadMod).then((r) => {
+                setEspecialidad({
                     nombre: {
+                        ...datosIniciales.nombre,
                         dato: r.nombre,
-                        campo: 'nombre',
-                        rotulo: 'Nombre de la Especialidad',
-                        requerido: true,
-                        error: false
                     }
-                };
-                setEspecialidad(dat);
+                });
             });
         }
-    };
+    }, [idEspecialidadMod, datosIniciales]);
 
-    useEffect(() => {
-        cargarEspecialidad(idEspecialidadMod);
-    }, [idEspecialidadMod]);
-
-    //--------------------------------------------------------------------------
-    //------------------------------HANDLERS------------------------------------
-    //--------------------------------------------------------------------------
-    const handleSubmit = SubmitForm(especialidad, setEspecialidad, idEspecialidadMod, setSaving);
-    //--------------------------------------------------------------------------
+    // HANDLERS
     const handleChange = (e) => {
         const { name, value } = e.target;
-        const updatedField = { ...especialidad[name], dato: value, error: false };
-        setEspecialidad(prev => ({ ...prev, [name]: updatedField }));
+        setEspecialidad(prev => ({
+            ...prev,
+            [name]: { ...prev[name], dato: value, error: false }
+        }));
     };
 
-    //**************************************************************************
-    //**************************************************************************
-    //**************************************************************************
+    const handleSubmit = SubmitForm(especialidad, setEspecialidad, idEspecialidadMod, setSaving, navigate);
+
+    // Estilo del panel (Igual al de Turnos)
+    const panelStyle = {
+        p: 3,
+        borderRadius: 3,
+        boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
+        border: '1px solid',
+        borderColor: 'divider',
+        bgcolor: 'background.paper'
+    };
+
     return (
-        <>
-            <Typography variant="h1" className="page-title" color="primary">
-                Especialidades - {idEspecialidadMod === 0 ? "Alta" : "Modificación"}
-            </Typography>
-            <Paper elevation={0} sx={{ backgroundColor: 'transparent', my: 1, mx: 'auto', p: 2 }}>
-                <form onSubmit={handleSubmit} noValidate>
-                    <Grid container spacing={2}>
-                        <NombreEspecialidadInput
-                            especialidad={especialidad}
-                            setEspecialidad={setEspecialidad}
-                            onChange={handleChange}
-                        />
-                        <FormActions
-                            onSubmit={handleSubmit}
-                            loading={saving}
-                        />
+        <Container maxWidth="md" sx={{ py: 4 }}>
+            <Box component="form" onSubmit={handleSubmit} noValidate>
+                
+                {/* Header Estilo Profesional */}
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center" sx={{ mb: 4 }}>
+                    <Avatar sx={{ width: 60, height: 60, bgcolor: 'primary.main', boxShadow: 3 }}>
+                        <MedicalServicesIcon fontSize="large" />
+                    </Avatar>
+                    <Box sx={{ textAlign: { xs: 'center', sm: 'left' } }}>
+                        <Typography variant="h4" fontWeight={800} color="text.primary">
+                            {idEspecialidadMod === 0 ? "Nueva Especialidad" : "Editar Especialidad"}
+                        </Typography>
+                        <Typography color="text.secondary">
+                            Defina el nombre de la categoría médica para el sistema
+                        </Typography>
+                    </Box>
+                </Stack>
+
+                <Grid container spacing={3} justifyContent="center">
+                    <Grid item xs={12}>
+                        <Paper sx={panelStyle}>
+                            <Typography variant="subtitle1" fontWeight={700} color="primary" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                                Información General
+                            </Typography>
+                            <Divider sx={{ mb: 2 }} />
+                            
+                            <Box sx={{ width: '100%' }}>
+                                <NombreEspecialidadInput
+                                    especialidad={especialidad}
+                                    onChange={handleChange}
+                                />
+                            </Box>
+                        </Paper>
                     </Grid>
-                </form>
-            </Paper>
-        </>
+                </Grid>
+
+                {/* Acciones del Formulario */}
+                <Box sx={{ mt: 4, display: 'flex', justifyContent: 'flex-end' }}>
+                    <FormActions
+                        onSubmit={handleSubmit}
+                        loading={saving}
+                    />
+                </Box>
+            </Box>
+        </Container>
     );
 };
 

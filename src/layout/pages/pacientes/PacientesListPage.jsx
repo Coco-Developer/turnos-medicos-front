@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+﻿import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Typography, Box, Button, Tooltip, useTheme, LinearProgress, Alert, Snackbar } from "@mui/material";
 import { MaterialReactTable, useMaterialReactTable } from 'material-react-table';
@@ -39,12 +39,12 @@ const PacientesListPage = () => {
         loadData();
     }, []);
 
-    // Manejo de eliminación
+    // Manejo de eliminaciÃ³n
     const handleDeleteClick = (row) => {
         setIdPaciente(row.original.id);
         setModalConfig({
-            title: 'Confirmar Eliminación',
-            message: `¿Está seguro que desea eliminar al paciente ${row.original.apellido}, ${row.original.nombre}? Esta acción no se puede deshacer.`
+            title: 'Confirmar EliminaciÃ³n',
+            message: `Â¿EstÃ¡ seguro que desea eliminar al paciente ${row.original.apellido}, ${row.original.nombre}? Esta acciÃ³n no se puede deshacer.`
         });
         setOpenDialog(true);
     };
@@ -58,7 +58,7 @@ const PacientesListPage = () => {
             // Interpretamos el 404 como "No tiene turnos" en el bloque catch
             const turnos = await listarTurnosDePaciente(idPaciente);
 
-            // Si llega aquí y hay datos en el array
+            // Si llega aquÃ­ y hay datos en el array
             if (turnos && turnos.length > 0) {
                 setSnack({ 
                     open: true, 
@@ -69,7 +69,7 @@ const PacientesListPage = () => {
                 return;
             }
 
-            // Si el array está vacío, procedemos a borrar
+            // Si el array estÃ¡ vacÃ­o, procedemos a borrar
             await ejecutarBorrado();
 
         } catch (error) {
@@ -87,7 +87,7 @@ const PacientesListPage = () => {
         }
     };
 
-    // Función auxiliar para no repetir código de borrado
+    // FunciÃ³n auxiliar para no repetir cÃ³digo de borrado
     const ejecutarBorrado = async () => {
         try {
             const res = await borrarPaciente(idPaciente);
@@ -99,7 +99,7 @@ const PacientesListPage = () => {
                 });
                 await loadData();
             } else {
-                setSnack({ open: true, message: 'El servidor rechazó la eliminación.', type: 'error' });
+                setSnack({ open: true, message: 'El servidor rechazÃ³ la eliminaciÃ³n.', type: 'error' });
                 setLoading(false);
             }
         } catch (err) {
@@ -112,15 +112,35 @@ const PacientesListPage = () => {
     const columns = useMemo(() => [
         { accessorKey: 'apellido', header: 'Apellido', size: 120 },
         { accessorKey: 'nombre', header: 'Nombre', size: 120 },
-        { accessorKey: 'telefono', header: 'Teléfono', size: 100 },
+        { accessorKey: 'telefono', header: 'TelÃ©fono', size: 100 },
         { accessorKey: 'email', header: 'Email', size: 150 },
     ], []);
 
-    // Configuración de la Tabla
+    // ConfiguraciÃ³n de la Tabla
     const table = useMaterialReactTable({
         columns,
         data,
         localization: MRT_Localization_ES,
+        layoutMode: "semantic",
+        enableColumnResizing: true,
+        muiTablePaperProps: {
+            sx: { width: "100%", overflow: "hidden" }
+        },
+        muiTableContainerProps: {
+            sx: {
+                width: "100%",
+                maxWidth: "100%",
+                overflowX: "auto",
+                maxHeight: { xs: "60dvh", md: "68dvh" }
+            }
+        },
+        muiTableBodyProps: {
+            sx: {
+                '& tr:nth-of-type(odd) > td': {
+                    backgroundColor: theme.palette.action.hover,
+                },
+            },
+        },
         initialState: {
             pagination: { pageSize: 10 },
             sorting: [{ id: 'apellido', desc: false }],
@@ -178,7 +198,7 @@ const PacientesListPage = () => {
     });
 
     return (
-        <Box sx={{ p: 3 }}>
+        <Box sx={{ p: { xs: 1.5, md: 3 }, width: "100%" }}>
             <Typography variant="h1" className="page-title" color="primary" sx={{ mb: 3 }}>
                 Cartilla de Pacientes
             </Typography>
@@ -200,9 +220,10 @@ const PacientesListPage = () => {
                 open={snack.open}
                 autoHideDuration={4000}
                 onClose={() => setSnack({ ...snack, open: false })}
-                anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+                anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+                sx={{ mt: { xs: 8, sm: 10 } }}
             >
-                <Alert severity={snack.type} variant="filled" sx={{ width: '100%' }}>
+                <Alert severity={snack.type} variant="filled" sx={{ width: '100%', maxWidth: { xs: '92vw', sm: 520 } }}>
                     {snack.message}
                 </Alert>
             </Snackbar>
@@ -211,3 +232,4 @@ const PacientesListPage = () => {
 };
 
 export default PacientesListPage;
+

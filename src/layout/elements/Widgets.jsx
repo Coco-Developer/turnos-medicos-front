@@ -35,11 +35,11 @@ export const CounterWidget = ({icon, bgClass, category, title, bgImage}) => {
         <Card
             className={bgClass}
             sx={{
-                //backgroundImage: `url(${getSVGURI(icon,'#ffffff10')})`,
                 backgroundImage: `url("${bgImage}") !important`,
                 backgroundSize: 'cover',
                 backgroundRepeat: 'no-repeat',
                 backgroundPosition: 'bottom right',
+                minHeight: { xs: 120, sm: 136 },
             }}
         >
             <CardContent>
@@ -52,13 +52,13 @@ export const CounterWidget = ({icon, bgClass, category, title, bgImage}) => {
                         alignItems: "center",
                     }}
                 >
-                    <Grid size={{ xs: 6, lg: 3 }}>
+                    <Grid size={{ xs: 3, lg: 3 }}>
                         <FontAwesomeIcon
                             icon={icon}
                             size="3x"
                         />
                     </Grid>
-                    <Grid size={{ xs: 6, lg: 9 }}  >
+                    <Grid size={{ xs: 9, lg: 9 }}  >
                         <h5 className="widget">{category}</h5>
                         <h3 className="widget">{title}</h3>
                     </Grid>

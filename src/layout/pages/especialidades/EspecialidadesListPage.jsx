@@ -1,4 +1,4 @@
-import * as React from "react";
+﻿import * as React from "react";
 import { useState, useEffect, useMemo } from "react";
 import Typography from "@mui/material/Typography";
 import {
@@ -61,7 +61,7 @@ const EspecialidadesListPage = () => {
             if (especialidadEnUso) {
                 setSnackData({
                     type: 'error',
-                    message: 'Existen médicos con esa especialidad. No se puede borrar.',
+                    message: 'Existen medicos con esa especialidad. No se puede borrar.',
                     open: true
                 });
             } else {
@@ -90,8 +90,8 @@ const EspecialidadesListPage = () => {
         setIdEspecialidad(row.original.id);
         setModal({
             open: true,
-            title: 'Eliminación',
-            message: `¿Confirma la eliminación de la especialidad: ${row.original.nombre}?`
+            title: 'Eliminacion',
+            message: `Confirma la eliminacion de la especialidad: ${row.original.nombre}?`
         });
     };
     //-------------------------------------------------------------------------- 
@@ -116,6 +116,16 @@ const EspecialidadesListPage = () => {
         data,
         enableHiding: false,
         localization: MRT_Localization_ES,
+        layoutMode: "semantic",
+        enableColumnResizing: true,
+        muiTableContainerProps: {
+            sx: {
+                width: "100%",
+                maxWidth: "100%",
+                overflowX: "auto",
+                maxHeight: { xs: "60dvh", md: "68dvh" }
+            }
+        },
         muiTablePaperProps: {
             elevation: 0,
             sx: { backgroundColor: 'transparent' },
@@ -144,7 +154,7 @@ const EspecialidadesListPage = () => {
                     onClick={() => navigate("/especialidades/form")}
                     startIcon={<FontAwesomeIcon icon={faCirclePlus} />}
                 >
-                    Añadir
+                    Anadir
                 </Button>
             </Box>
         ),
@@ -166,17 +176,13 @@ const EspecialidadesListPage = () => {
 
     //============================================================================== 
     return (
-        <>
-            <Typography variant="h1" className="page-title" color="primary">
+        <Box sx={{ p: { xs: 1.5, md: 3 }, width: "100%" }}>
+            <Typography variant="h1" className="page-title" color="primary" sx={{ mb: 3 }}>
                 Lista de Especialidades
             </Typography>
             {loading ? <Box sx={{ width: '100%' }}><LinearProgress /></Box> : ""}
-            <Box
-                display="flex"
-                justifyContent="center"
-                alignItems="center"
-            >
-                    <MaterialReactTable table={table} />
+            <Box sx={{ width: "100%" }}>
+                <MaterialReactTable table={table} />
             </Box>
 
             <ConfirmDialog
@@ -185,26 +191,28 @@ const EspecialidadesListPage = () => {
                 severity='error'
                 openDialog={modal.open}
                 handleOKButton={() => deleteEspecialidad(idEspecialidad)}
-                handleCloseDialog={() => setModal(false)}
+                handleCloseDialog={() => setModal({ open: false, title: '', message: '' })}
             />
 
             <Snackbar
                 open={snackData.open}
                 autoHideDuration={4000}
                 onClose={handleSnackClose}
-                anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+                anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+                sx={{ mt: { xs: 8, sm: 10 } }}
             >
                 <Alert
                     onClose={handleSnackClose}
                     severity={snackData.type}
                     variant="filled"
-                    sx={{ width: '100%' }}
+                    sx={{ width: '100%', maxWidth: { xs: '92vw', sm: 520 } }}
                 >
                     {snackData.message}
                 </Alert>
             </Snackbar>
-        </>
+        </Box>
     );
 };
 
 export default EspecialidadesListPage;
+

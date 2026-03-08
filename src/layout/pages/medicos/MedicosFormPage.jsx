@@ -84,12 +84,16 @@ const MedicosFormPage = () => {
                 nuevo.fechaaltalaboral.dato = r.fechaAltaLaboral ? dayjs(r.fechaAltaLaboral) : defaultValues.iniDte;
                 nuevo.foto.dato = r.foto || '';
 
-                if (r.horarios) {
-                    r.horarios.forEach(h => {
-                        const key = NUM_DAYSMAP[h.diaSemana];
+                const horarios = Array.isArray(r.horarios) ? r.horarios : (Array.isArray(r.Horarios) ? r.Horarios : []);
+                if (horarios.length > 0) {
+                    horarios.forEach(h => {
+                        const diaSemana = h.diaSemana ?? h.DiaSemana;
+                        const horaInicio = h.horarioAtencionInicio ?? h.HorarioAtencionInicio;
+                        const horaFin = h.horarioAtencionFin ?? h.HorarioAtencionFin;
+                        const key = NUM_DAYSMAP[diaSemana];
                         if (key) {
-                            nuevo[`horarioatencion_${key}_inicio`].dato = parseHora(h.horarioAtencionInicio);
-                            nuevo[`horarioatencion_${key}_fin`].dato = parseHora(h.horarioAtencionFin);
+                            nuevo[`horarioatencion_${key}_inicio`].dato = parseHora(horaInicio);
+                            nuevo[`horarioatencion_${key}_fin`].dato = parseHora(horaFin);
                         }
                     });
                 }

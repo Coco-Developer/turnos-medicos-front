@@ -18,6 +18,19 @@ import dayjs from "dayjs";
 import { listarTurnosPaciente } from "../../../services/turnos.service";
 import { obtenerPaciente } from "../../../services/pacientes.service";
 
+const normalizeTurno = (t) => ({
+    id: t.id ?? t.turnoId ?? t.Id ?? `${t.fecha ?? t.fecha_turno ?? "s/f"}-${t.hora ?? t.hora_turno ?? "s/h"}-${t.medico ?? t.medicoNombre ?? "s/m"}`,
+    fecha: t.fecha ?? t.fechaTurno ?? t.fecha_turno ?? null,
+    hora: t.hora ?? t.horaTurno ?? t.hora_turno ?? "",
+    medico: t.medico ?? t.medicoNombre ?? t.nombreMedico ?? t.doctor ?? "-",
+    foto: t.foto ?? t.Foto ?? t.medicoFoto ?? t.fotoMedico ?? "",
+    especialidad: t.especialidad ?? t.especialidadNombre ?? t.nombreEspecialidad ?? "-",
+    estado: t.estado ?? t.estadoNombre ?? "-",
+    estadoClase: t.estadoClase ?? t.estado_clase ?? "",
+    estadoIcono: t.estadoIcono ?? t.estado_icono ?? null,
+    observaciones: t.observaciones ?? t.obs ?? ""
+});
+
 const PacienteTurnosPage = () => {
     const { id } = useParams();
     const theme = useTheme();
@@ -35,17 +48,20 @@ const PacienteTurnosPage = () => {
                 obtenerPaciente(id)
             ]);
 
-            setData(turnosRes);
+            const safeTurnos = Array.isArray(turnosRes) ? turnosRes.map(normalizeTurno) : [];
+            setData(safeTurnos);
 
             // Formateo de DNI para la vista
-            const dniFormateado = new Intl.NumberFormat("es-ES").format(pacienteRes.dni);
+            const dniFormateado = pacienteRes?.dni
+                ? new Intl.NumberFormat("es-ES").format(pacienteRes.dni)
+                : "-";
 
             setPaciente({
-                nombreCompleto: `${pacienteRes.apellido}, ${pacienteRes.nombre}`,
-                inicial: pacienteRes.apellido.charAt(0),
+                nombreCompleto: `${pacienteRes?.apellido ?? ""}, ${pacienteRes?.nombre ?? ""}`,
+                inicial: (pacienteRes?.apellido?.charAt(0) || "P"),
                 dni: dniFormateado,
-                telefono: pacienteRes.telefono,
-                email: pacienteRes.email,
+                telefono: pacienteRes?.telefono ?? "-",
+                email: pacienteRes?.email ?? "-",
             });
         } catch (error) {
             console.error("Error cargando datos del paciente", error);
@@ -84,7 +100,9 @@ const PacienteTurnosPage = () => {
                     <Avatar
                         src={row.original.foto ? `data:image/jpeg;base64,${row.original.foto}` : ""}
                         sx={{ width: 32, height: 32, border: `1px solid ${theme.palette.divider}` }}
-                    />
+                    >
+                        {(renderedCellValue || "-").toString().charAt(0)}
+                    </Avatar>
                     <Typography variant="body2">{renderedCellValue}</Typography>
                 </Box>
             ),

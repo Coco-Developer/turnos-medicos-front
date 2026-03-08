@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from "react";
+﻿import React, {useEffect, useState} from "react";
 import { Button, Snackbar, Alert } from "@mui/material";
 import Grid from '@mui/material/Grid';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -8,13 +8,13 @@ import { useNavigate } from 'react-router-dom';
 
 export const FormActions = ({ onSubmit,  loading}) => {
     const { snackData, setSnackData } = useSnack();
-    const navigate = useNavigate(); // Hook para la navegación
+    const navigate = useNavigate(); // Hook para la navegaciÃ³n
 
-    // 20250329: Hay 2 opciones: volver automáticamente a la lista luego de x
-    // segundos (luego de Alta o Modificación), o manualmente mediante un botón.
-    // Creo que la mejor opción es la automática, pero por las dudas, queda esto
+    // 20250329: Hay 2 opciones: volver automÃ¡ticamente a la lista luego de x
+    // segundos (luego de Alta o ModificaciÃ³n), o manualmente mediante un botÃ³n.
+    // Creo que la mejor opciÃ³n es la automÃ¡tica, pero por las dudas, queda esto
     // comentado.
-    // Si se llega a utilizar el botón nuevamente, añadir:
+    // Si se llega a utilizar el botÃ³n nuevamente, aÃ±adir:
     // {snackData.action === 'alta' && snackActionAlta}
     // antes del cierre del Alert.
     // const snackActionAlta = (
@@ -32,7 +32,7 @@ export const FormActions = ({ onSubmit,  loading}) => {
 
     const handleSnackClose = () => setSnackData({ ...snackData, open: false });
 
-    // Efecto para cerrar el snackbar y navegar después de 2 segundos
+    // Efecto para cerrar el snackbar y navegar despuÃ©s de 2 segundos
     useEffect(() => {
     if (snackData.open && (snackData.action === 'alta' || snackData.action === 'mod')) {
         const timeout = setTimeout(() => {
@@ -60,7 +60,7 @@ export const FormActions = ({ onSubmit,  loading}) => {
                     loading={loading}
                     loadingPosition="start"
                     startIcon={<FontAwesomeIcon icon={faCloudArrowUp} />}
-                    onClick={onSubmit}
+                    disabled={loading}
                 >
                     Guardar
                 </Button>
@@ -69,13 +69,14 @@ export const FormActions = ({ onSubmit,  loading}) => {
                 open={snackData.open}
                 autoHideDuration={snackData.duration}
                 onClose={handleSnackClose}
-                anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+                anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+                sx={{ mt: { xs: 8, sm: 10 } }}
             >
                 <Alert
                     onClose={handleSnackClose}
                     severity={snackData.type}
                     variant="filled"
-                    sx={{ width: '100%' }}
+                    sx={{ width: '100%', maxWidth: { xs: '92vw', sm: 520 } }}
                 >
                     {snackData.message}
 
@@ -84,3 +85,4 @@ export const FormActions = ({ onSubmit,  loading}) => {
         </>
     );
 };
+

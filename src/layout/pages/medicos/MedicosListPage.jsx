@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+﻿import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
     useTheme, LinearProgress, Tooltip, Alert, Snackbar, Paper, 
@@ -14,7 +14,7 @@ import customParseFormat from "dayjs/plugin/customParseFormat";
 
 // Componentes y Servicios
 import ConfirmDialog from "../../elements/ConfirmDialog";
-import { borrarMedico, listarMedicos, obtenerHorarioMedico } from "../../../services/medicos.service";
+import { borrarMedico, listarMedicos, obtenerHorarioMedico, obtenerMedico } from "../../../services/medicos.service";
 import { listarEspecialidades } from "../../../services/especialidades.service";
 import { listarTurnosDeMedico } from "../../../services/turnos.service";
 
@@ -36,10 +36,26 @@ const MedicosListPage = () => {
 
     const days = [
         { key: "lun", label: "Lunes" }, { key: "mar", label: "Martes" },
-        { key: "mie", label: "Miércoles" }, { key: "jue", label: "Jueves" },
-        { key: "vie", label: "Viernes" }, { key: "sab", label: "Sábado" },
+        { key: "mie", label: "Miercoles" }, { key: "jue", label: "Jueves" },
+        { key: "vie", label: "Viernes" }, { key: "sab", label: "Sabado" },
         { key: "dom", label: "Domingo" },
     ];
+
+    const normalizeScheduleItem = (h) => ({
+        diaSemana: Number(h?.diaSemana ?? h?.DiaSemana ?? 0),
+        horarioAtencionInicio:
+            h?.horarioAtencionInicio ??
+            h?.HorarioAtencionInicio ??
+            h?.horaAtencionInicio ??
+            h?.HoraAtencionInicio ??
+            null,
+        horarioAtencionFin:
+            h?.horarioAtencionFin ??
+            h?.HorarioAtencionFin ??
+            h?.horaAtencionFin ??
+            h?.HoraAtencionFin ??
+            null,
+    });
 
     const loadData = useCallback(async () => {
         setLoading(true);
@@ -63,7 +79,7 @@ const MedicosListPage = () => {
 
     const procederBorrado = (id) => {
         borrarMedico(id).then(() => {
-            setSnackData({ type: 'success', message: 'Médico eliminado. Actualizando lista...', open: true });
+            setSnackData({ type: 'success', message: 'Medico eliminado. Actualizando lista...', open: true });
             loadData(); 
         }).catch(() => {
             setSnackData({ type: 'error', message: 'Error al intentar borrar el registro.', open: true });
@@ -75,7 +91,7 @@ const MedicosListPage = () => {
         listarTurnosDeMedico(id)
             .then((r) => {
                 if (Array.isArray(r) && r.length > 0) {
-                    setSnackData({ type: 'error', message: 'No se puede borrar: El médico tiene turnos asignados.', open: true });
+                    setSnackData({ type: 'error', message: 'No se puede borrar: El medico tiene turnos asignados.', open: true });
                     setLoading(false);
                 } else {
                     procederBorrado(id);
@@ -91,16 +107,30 @@ const MedicosListPage = () => {
             });
     };
 
-    const openInfoConfirmModal = (row) => {
+    const openInfoConfirmModal = async (row) => {
         const id = row.original.id;
-        obtenerHorarioMedico(id).then((r) => {
+        try {
+            const fromScheduleEndpoint = await obtenerHorarioMedico(id);
+            const medico = await obtenerMedico(id);
+            const fromMedico = Array.isArray(medico?.horarios)
+                ? medico.horarios
+                : (Array.isArray(medico?.Horarios) ? medico.Horarios : []);
+
+            const sourceRaw = Array.isArray(fromScheduleEndpoint) && fromScheduleEndpoint.length > 0
+                ? fromScheduleEndpoint
+                : fromMedico;
+
+            const source = sourceRaw.map(normalizeScheduleItem);
+
             const inicioRow = [];
             const finRow = [];
             days.forEach((_, index) => {
                 const diaSemanaBuscado = index + 1;
-                const horario = r ? r.find((h) => h.diaSemana === diaSemanaBuscado) : null;
-                inicioRow.push(horario ? dayjs(horario.horarioAtencionInicio, 'HH:mm:ss').format('HH:mm') : "-");
-                finRow.push(horario ? dayjs(horario.horarioAtencionFin, 'HH:mm:ss').format('HH:mm') : "-");
+                const horario = source.find((h) => Number(h.diaSemana) === diaSemanaBuscado) || null;
+                const ini = horario?.horarioAtencionInicio ? dayjs(horario.horarioAtencionInicio, 'HH:mm:ss').format('HH:mm') : "-";
+                const fin = horario?.horarioAtencionFin ? dayjs(horario.horarioAtencionFin, 'HH:mm:ss').format('HH:mm') : "-";
+                inicioRow.push(ini);
+                finRow.push(fin);
             });
 
             const thStyle = { height: '3rem', p: 1, color: '#fff', borderRight: '1px solid rgba(255,255,255,0.2)', fontSize: '0.8rem' };
@@ -109,7 +139,7 @@ const MedicosListPage = () => {
                     <Table size="small">
                         <TableHead>
                             <TableRow sx={{ backgroundColor: theme.palette.primary.main }}>
-                                <TableCell sx={thStyle}>Día</TableCell>
+                                <TableCell sx={thStyle}>Dia</TableCell>
                                 {days.map((d) => <TableCell key={d.key} align="center" sx={thStyle}>{d.label.substring(0, 3)}</TableCell>)}
                             </TableRow>
                         </TableHead>
@@ -131,15 +161,17 @@ const MedicosListPage = () => {
                 open: true, type: 'info', title: `Horario: ${row.original.apellido}`,
                 message: horariosTable, severity: 'info', contentRTF: true,
             });
-        });
+        } catch {
+            setSnackData({ type: "error", message: "No se pudo cargar la agenda del medico.", open: true });
+        }
     };
 
-    // --- COLUMNAS OPTIMIZADAS (Anchos fijos para evitar expansión excesiva) ---
+    // --- COLUMNAS OPTIMIZADAS (Anchos fijos para evitar expansion excesiva) ---
     const columns = useMemo(() => [
         {
             accessorKey: 'foto',
             header: '',
-            size: 50, // Muy pequeña para la foto
+            size: 50, // Muy pequena para la foto
             enableColumnFilter: false,
             Cell: ({ row }) => (
                 <img alt="F" height={32} width={32}
@@ -148,10 +180,10 @@ const MedicosListPage = () => {
                 />
             ),
         },
-        { accessorKey: 'matricula', header: 'Matrícula', size: 100 },
+        { accessorKey: 'matricula', header: 'Matricula', size: 100 },
         { accessorKey: 'apellido', header: 'Apellido', size: 150 },
         { accessorKey: 'nombre', header: 'Nombre', size: 150 },
-        { accessorKey: 'telefono', header: 'Teléfono', size: 120 },
+        { accessorKey: 'telefono', header: 'Telefono', size: 120 },
         { 
             header: 'Especialidad',
             id: 'especialidad_display',
@@ -170,9 +202,28 @@ const MedicosListPage = () => {
         localization: MRT_Localization_ES,
         enableRowActions: true,
         positionActionsColumn: 'last',
-        layoutMode: 'auto', // <--- ESTO hace que la tabla se ajuste al contenido
+        layoutMode: 'semantic',
+        enableColumnResizing: true,
+        muiTablePaperProps: {
+            sx: { width: "100%", overflow: "hidden" }
+        },
+        muiTableContainerProps: {
+            sx: {
+                width: "100%",
+                maxWidth: "100%",
+                overflowX: "auto",
+                maxHeight: { xs: "60dvh", md: "68dvh" }
+            }
+        },
+        muiTableBodyProps: {
+            sx: {
+                '& tr:nth-of-type(odd) > td': {
+                    backgroundColor: theme.palette.action.hover,
+                },
+            },
+        },
         initialState: {
-            density: 'compact', // <--- Más pequeña desde el inicio
+            density: 'compact', // <--- Mas pequena desde el inicio
             pagination: { pageSize: 10 },
         },
         displayColumnDefOptions: {
@@ -186,7 +237,7 @@ const MedicosListPage = () => {
                 color="primary" variant="contained" onClick={() => navigate("/medicos/form")}
                 startIcon={<FontAwesomeIcon icon={faCirclePlus} />}
             >
-                Añadir Médico
+                Anadir Medico
             </Button>
         ),
         renderRowActions: ({ row }) => (
@@ -201,8 +252,8 @@ const MedicosListPage = () => {
                     <FontAwesomeIcon icon={faTrash} style={{ cursor: 'pointer', color: theme.palette.error.main }} onClick={() => {
                         setIdMedico(row.original.id);
                         setModal({
-                            open: true, type: 'delete', title: 'Eliminar Médico',
-                            message: `¿Desea borrar al médico ${row.original.apellido}, ${row.original.nombre}?`,
+                            open: true, type: 'delete', title: 'Eliminar Medico',
+                            message: `Desea borrar al medico ${row.original.apellido}, ${row.original.nombre}?`,
                             severity: 'error', contentRTF: false,
                         });
                     }} />
@@ -212,9 +263,9 @@ const MedicosListPage = () => {
     });
 
     return (
-        <Box sx={{ p: 3 }}>
+        <Box sx={{ p: { xs: 1.5, md: 3 }, width: "100%" }}>
             <Typography variant="h1" className="page-title" color="primary" sx={{ mb: 3 }}>
-                Gestión de Médicos
+                Gestion de Medicos
             </Typography>
             
             {loading && <LinearProgress sx={{ mb: 2 }} />}
@@ -233,9 +284,10 @@ const MedicosListPage = () => {
             <Snackbar 
                 open={snackData.open} autoHideDuration={4000} 
                 onClose={() => setSnackData(prev => ({ ...prev, open: false }))}
-                anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+                anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+                sx={{ mt: { xs: 8, sm: 10 } }}
             >
-                <Alert severity={snackData.type} variant="filled" sx={{ width: '100%' }}>
+                <Alert severity={snackData.type} variant="filled" sx={{ width: '100%', maxWidth: { xs: '92vw', sm: 520 } }}>
                     {snackData.message}
                 </Alert>
             </Snackbar>
@@ -244,3 +296,4 @@ const MedicosListPage = () => {
 };
 
 export default MedicosListPage;
+

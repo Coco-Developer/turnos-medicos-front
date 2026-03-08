@@ -1,102 +1,102 @@
-import api from "./auth.service"; // Instancia con Interceptor de API KEY y BaseURL
+import api from "./auth.service";
 
-//------------------------------------------------------------------------------
+const extractErrorMessage = (error, fallback) => {
+    const raw = error?.response?.data;
+    if (typeof raw === "string" && raw.trim()) return raw;
+    if (raw?.message) return raw.message;
+    if (raw?.error) return raw.error;
+    if (raw?.title) return raw.title;
+    return fallback;
+};
+
 export const listarMedicos = async () => {
-    const response = await api.get('/Medico');
+    const response = await api.get("/Medico");
     return response.data;
 };
 
-//------------------------------------------------------------------------------
 export const listarMedicosPorEspecialidad = async (id) => {
     try {
         const response = await api.get(`/Medico/list-for-specialty/${id}`);
-        // Maneja IActionResult devolviendo el cuerpo de la respuesta
         return response.data;
     } catch (error) {
-        console.error('Error obteniendo datos de Médicos por Especialidad: ', error);
+        console.error("Error obteniendo medicos por especialidad:", error);
         return {
             status: error.response?.status,
-            statusText: error.response?.data?.message
+            statusText: extractErrorMessage(error, "Error al obtener medicos por especialidad")
         };
     }
 };
 
-//------------------------------------------------------------------------------
 export const obtenerMedico = async (id) => {
     try {
-        const response = await api.get(`/Medico/${id}`);
+        const response = await api.get(`/Medico/${id}?t=${Date.now()}`);
         return response.data;
     } catch (error) {
-        console.error('Error obteniendo datos de un Médico: ', error);
+        console.error("Error obteniendo medico:", error);
         return {
             status: error.response?.status,
-            statusText: error.response?.data?.message
+            statusText: extractErrorMessage(error, "Error al obtener medico")
         };
     }
 };
 
-//------------------------------------------------------------------------------
 export const crearMedico = async (medico) => {
     try {
-        return await api.post('/Medico', medico);
+        return await api.post("/Medico", medico);
     } catch (error) {
-        console.error(`Error creando registro de Médico: (${error.response?.status})`);
+        console.error(`Error creando medico: (${error.response?.status})`, error);
         return {
             status: error.response?.status,
-            statusText: error.response?.data?.message || error.response?.data?.errorMessage
+            statusText: extractErrorMessage(error, "Error al crear medico")
         };
     }
 };
 
-//------------------------------------------------------------------------------
 export const modificarMedico = async (id, medico) => {
     try {
         return await api.put(`/Medico/${id}`, medico);
     } catch (error) {
-        console.error(`Error actualizando registro de Médico: (${error.response?.status})`, error);
+        const raw = error?.response?.data;
+        const detailed = typeof raw === "string" ? raw : JSON.stringify(raw);
         return {
-            status: error.response?.status,
-            statusText: error.response?.data?.message
+            status: error?.response?.status,
+            statusText: detailed || extractErrorMessage(error, "Error interno al actualizar medico")
         };
     }
+
 };
 
-//------------------------------------------------------------------------------
 export const borrarMedico = async (id) => {
     try {
         const res = await api.delete(`/Medico/${id}`);
-        return res.data || '1'; 
+        return res.data || "1";
     } catch (error) {
-        // Si el backend responde con error (ej: tiene turnos reales), capturamos el mensaje
-        return { 
-            status: error.response?.status, 
-            statusText: error.response?.data?.message || "Error al eliminar" 
-        };
-    }
-};
-
-//------------------------------------------------------------------------------
-export const cantidadMedicos = async () => {
-    try {
-        const response = await api.get('/Medico/get-qty');
-        return response.data;
-    } catch (error) {
-        console.error('Error obteniendo cantidad de Médicos: ', error);
         return {
             status: error.response?.status,
-            statusText: error.response?.data?.message
+            statusText: extractErrorMessage(error, "Error al eliminar")
         };
     }
 };
 
-//------------------------------------------------------------------------------
+export const cantidadMedicos = async () => {
+    try {
+        const response = await api.get("/Medico/get-qty");
+        return response.data;
+    } catch (error) {
+        console.error("Error obteniendo cantidad de medicos:", error);
+        return {
+            status: error.response?.status,
+            statusText: extractErrorMessage(error, "Error al obtener cantidad de medicos")
+        };
+    }
+};
+
 export const obtenerHorarioMedico = async (id) => {
     try {
-        // Agregamos timestamp para que el RELOJ sea real siempre
         const response = await api.get(`/Medico/get-schedule/${id}?t=${Date.now()}`);
         return response.data;
     } catch (error) {
-        console.error('Error obteniendo horario: ', error);
+        console.error("Error obteniendo horario medico:", error);
         return null;
     }
 };

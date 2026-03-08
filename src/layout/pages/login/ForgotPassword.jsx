@@ -120,8 +120,9 @@ const ForgotPassword = () => {
         autoHideDuration={4000}
         onClose={handleSnackClose}
         anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        sx={{ mt: { xs: 8, sm: 10 } }}
       >
-        <Alert onClose={handleSnackClose} severity={snackData.type} variant="filled" sx={{ width: '100%' }}>
+        <Alert onClose={handleSnackClose} severity={snackData.type} variant="filled" sx={{ width: '100%', maxWidth: { xs: '92vw', sm: 520 } }}>
           {snackData.message}
         </Alert>
       </Snackbar>

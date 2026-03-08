@@ -1,4 +1,4 @@
-import "../../App.css";
+﻿import "../../App.css";
 import * as React from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
@@ -48,7 +48,12 @@ function CustomToolbar() {
                 onBackdropClick={() => setToggled(false)} 
                 toggled={toggled} 
                 onBreakPoint={setShowMenu}
-                dataTgTour="Barra de menú"
+                dataTgTour="Barra de menu"
+                rootStyles={{
+                    height: "100dvh",
+                    position: "sticky",
+                    top: 0
+                }}
             >
                 <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                     <NavLink to={'dashboard'} className="app-logo" style={{ textDecoration: 'none', textAlign: 'center' }}>
@@ -96,7 +101,7 @@ function CustomToolbar() {
 
                     <Divider sx={{ my: 1, bgcolor: "primary.light", opacity: 0.2 }} variant="middle" />
 
-                    {/* Menú de Usuario */}
+                    {/* MenÃº de Usuario */}
                     <Box
                         sx={{
                             px: 3,
@@ -131,7 +136,7 @@ function CustomToolbar() {
                                 component={<NavLink to="/cambiarpass" />}
                                 icon={<FontAwesomeIcon icon={faKey} size="sm" />}
                             >
-                                Contraseña
+                                ContraseÃ±a
                             </MenuItem>
 
                             <MenuItem

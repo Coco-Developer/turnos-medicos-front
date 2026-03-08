@@ -1,258 +1,169 @@
-
-import {useEffect, useState} from "react";
+import { useEffect, useMemo, useState } from "react";
 import Typography from "@mui/material/Typography";
 import Box from "@mui/material/Box";
-import {LinearProgress, Paper, useTheme} from "@mui/material";
-import Grid from '@mui/material/Grid';
+import { LinearProgress, Paper } from "@mui/material";
+import Grid from "@mui/material/Grid";
 import dayjs from "dayjs";
-import {cantidadPacientes} from "../../../services/pacientes.service";
-import {faCalendar, faCalendarCheck, faCircleCheck, faUser, faUserDoctor} from "@fortawesome/free-solid-svg-icons";
-import {CircleChartWidget, CounterWidget, StackedBarChartWidget} from "../../elements/Widgets";
-import {cantidadMedicos} from "../../../services/medicos.service";
-import {obtenerDashboardData} from "../../../services/turnos.service";
-import {listarEstados} from "../../../services/estados.service";
-import bgMed from '../../../assets/bkg-medicos.png';
-import bgPac from '../../../assets/bkg-pacientes.png';
-import bgMes from '../../../assets/bkg-turnos1.png';
-import bgAnio from '../../../assets/bkg-turnos2.png';
+import { cantidadPacientes } from "../../../services/pacientes.service";
+import { faCalendar, faCalendarCheck, faCircleCheck, faUser, faUserDoctor } from "@fortawesome/free-solid-svg-icons";
+import { CircleChartWidget, CounterWidget, StackedBarChartWidget } from "../../elements/Widgets";
+import { cantidadMedicos } from "../../../services/medicos.service";
+import { listarTurnos } from "../../../services/turnos.service";
+import { listarEstados } from "../../../services/estados.service";
+import bgMed from "../../../assets/bkg-medicos.png";
+import bgPac from "../../../assets/bkg-pacientes.png";
+import bgMes from "../../../assets/bkg-turnos1.png";
+import bgAnio from "../../../assets/bkg-turnos2.png";
 
+const monthKey = (date) => dayjs(date).format("YYYY-MM");
 
 const DashboardPage = () => {
-    const theme = useTheme();
     const [loading, setLoading] = useState(false);
-    const hoy = dayjs();
-    //console.log('DASHBOARD');
-    //--------------------------------------------------------------------------
     const [estados, setEstados] = useState([]);
-    const loadEstados =  () => {
-        listarEstados().then( (r) => {
-            setEstados(r);
-        });
-    };
-    //--------------------------------------------------------------------------
+
     const [cantPac, setCantPac] = useState(0);
-    const loadCantidadPacientes =  () => {
-        cantidadPacientes().then( (r) => {
-            setCantPac(r);
-        });
-    };
-    //--------------------------------------------------------------------------
     const [cantMed, setCantMed] = useState(0);
-    const loadCantidadMedicos =  () => {
-        cantidadMedicos().then( (r) => {
-            setCantMed(r);
-        });
-    };
-    //--------------------------------------------------------------------------
     const [cantTurMo, setCantTurMo] = useState(0);
     const [cantTurYr, setCantTurYr] = useState(0);
+
     const [dataTurnosMo, setDataTurnosMo] = useState([]);
     const [dataTurnosYrLbl, setDataTurnosYrLbl] = useState([]);
     const [dataTurnosYr, setDataTurnosYr] = useState([]);
     const [dataTurnosPorMedicoYrLbl, setDataTurnosPorMedicoYrLbl] = useState([]);
     const [dataTurnosPorMedicoYr, setDataTurnosPorMedicoYr] = useState([]);
 
-    const loadCantidadTurnos =  () => {
-        obtenerDashboardData().then( (r) => {
-            loadCantidadTurnosEsteMes(r['qtyTurnosMo']);
-            loadCantidadTurnosEsteAnioCount(r['qtyTurnosYr']);
-            loadCantidadTurnosEsteAnioBarras(r['qtyStatesYr']);
-            loadCantidadTurnosPorMedicoEsteAnioBarras(r['qtyTurnosXMedico']);
+    const estadoColorMap = useMemo(() => {
+        const map = {};
+        estados.forEach((e) => {
+            map[e.nombre] = e.color || "#888";
         });
-    };
-    //--------------------------------------------------------------------------
-    const loadCantidadTurnosEsteMes = (t) => {
-        const sum = t.reduce(
-            (acc, curr) => acc + curr.countId,
-            0,
-        );
-        const dummy = t.map(
-            (x, i) => {
-                return { id: i, value: x.countId, label: x.estado, color: x.color };
-            }
-        );
-        setDataTurnosMo(dummy);
-        setCantTurMo(sum);
-    }
-    //--------------------------------------------------------------------------
-    const loadCantidadTurnosEsteAnioCount =  (t) => {
-        const sum = t.reduce(
-                 (acc, curr) => {
-                     if (curr.estado === 'Realizado'){
-                         acc += curr.countId;
-                     }
-                     return acc;
-                 },
-                 0,
-             );
+        return map;
+    }, [estados]);
 
-        setCantTurYr(sum);
-     };
-    //--------------------------------------------------------------------------
-    const loadCantidadTurnosEsteAnioBarras =  (t) => {
-        let clr = '#888';
-        const dummy = t.map(
-            (x, i) => {
-                const {yr, ...y} = x;
-                return y;
-            }
-        );
+    const fillFromTurns = (turnos) => {
+        const now = dayjs();
+        const currentYear = now.year();
+        const currentMonth = now.format("YYYY-MM");
 
-        const k = Object.keys(dummy[0]);
-        const labelsOfChart =  k.flatMap(
-            (lbl, i) => {
-                if (lbl === 'mo') {
-                    return [];
-                }
-
-                // Como la carga de los Estados falla en primera llamada,
-                // la mejor solución es un valor por defecto para que no
-                // salte un error crítico.
-                const dummy2 = estados.find((y)=>{return y.nombre === lbl});
-                if (dummy2 !== undefined) {
-                    clr = dummy2.color;
-                }
-
-                return { dataKey: lbl, label: lbl, stack: 'Mes', color: clr };
-            }
-        )
-        //console.log('TurnosYr: ',dummy);
-        setDataTurnosYr(dummy);
-        setDataTurnosYrLbl(labelsOfChart);
-    };
-
-    //--------------------------------------------------------------------------
-    const loadCantidadTurnosPorMedicoEsteAnioBarras =  (t) => {
-        let clr = '#888';
-
-        if (!Array.isArray(t) || t.length === 0) {
-            setDataTurnosPorMedicoYr([]);
-            setDataTurnosPorMedicoYrLbl([]);
-            return;
-        }
-
-        // Agrupar por médico e inicializar con todos los estados en 0 usando el NOMBRE como clave
-        const agrupado = t.reduce((acu, { medico, estado, countId }) => {
-            if (!acu[medico]) {
-                acu[medico] = {
-                    medico,
-                    ...Object.fromEntries(estados.map(s => [s.nombre, 0]))
-                };
-            }
-
-            // Si llega un estado no listado en `estados`, lo inicializamos a 0
-            if (!(estado in acu[medico])) {
-                acu[medico][estado] = 0;
-            }
-
-            // Sumar asegurando números
-            acu[medico][estado] = (acu[medico][estado] ?? 0) + (Number(countId) || 0);
-            return acu;
+        const valid = Array.isArray(turnos) ? turnos : [];
+        const turnsThisYear = valid.filter((t) => dayjs(t.fecha).year() === currentYear);
+        const turnsThisMonth = turnsThisYear.filter((t) => monthKey(t.fecha) === currentMonth);
+        const monthByState = turnsThisMonth.reduce((acc, t) => {
+            const st = t.estado || "Desconocido";
+            acc[st] = (acc[st] || 0) + 1;
+            return acc;
         }, {});
-        // Pasar a array
-        const dummy = Object.values(agrupado);
-        //console.log('Dummy: ',dummy);
 
-        const labelsOfChart = estados.map(s => ({
-            dataKey: s.nombre,
-            label: s.nombre,
-            stack: 'Medico',
-            color: s.color
+        const monthPie = Object.entries(monthByState).map(([estado, value], i) => ({
+            id: i,
+            value,
+            label: estado,
+            color: estadoColorMap[estado] || "#888"
         }));
+        setDataTurnosMo(monthPie);
+        setCantTurMo(turnsThisMonth.length);
 
-        setDataTurnosPorMedicoYr(dummy);
-        setDataTurnosPorMedicoYrLbl(labelsOfChart);
+        const doneCount = turnsThisYear.filter((t) => (t.estado || "").toLowerCase() === "realizado").length;
+        setCantTurYr(doneCount);
+
+        const byMonthMap = {};
+        turnsThisYear.forEach((t) => {
+            const mo = dayjs(t.fecha).format("MM");
+            const estado = t.estado || "Desconocido";
+            if (!byMonthMap[mo]) {
+                byMonthMap[mo] = { mo, ...Object.fromEntries(estados.map((s) => [s.nombre, 0])) };
+                byMonthMap[mo][estado] = 0;
+            }
+            if (byMonthMap[mo][estado] === undefined) byMonthMap[mo][estado] = 0;
+            byMonthMap[mo][estado] += 1;
+        });
+
+        const byMonth = Object.values(byMonthMap).sort((a, b) => Number(a.mo) - Number(b.mo));
+        setDataTurnosYr(byMonth);
+        setDataTurnosYrLbl(
+            estados.map((s) => ({ dataKey: s.nombre, label: s.nombre, stack: "Mes", color: s.color || "#888" }))
+        );
+
+        const byDoctorMap = {};
+        turnsThisYear.forEach((t) => {
+            const medico = t.medico || "Sin medico";
+            const estado = t.estado || "Desconocido";
+            if (!byDoctorMap[medico]) {
+                byDoctorMap[medico] = { medico, ...Object.fromEntries(estados.map((s) => [s.nombre, 0])) };
+            }
+            if (byDoctorMap[medico][estado] === undefined) byDoctorMap[medico][estado] = 0;
+            byDoctorMap[medico][estado] += 1;
+        });
+
+        setDataTurnosPorMedicoYr(Object.values(byDoctorMap));
+        setDataTurnosPorMedicoYrLbl(
+            estados.map((s) => ({ dataKey: s.nombre, label: s.nombre, stack: "Medico", color: s.color || "#888" }))
+        );
     };
 
-    //--------------------------------------------------------------------------
     useEffect(() => {
-        loadEstados();
+        const load = async () => {
+            setLoading(true);
+            try {
+                const [est, cp, cm, turns] = await Promise.all([
+                    listarEstados(),
+                    cantidadPacientes(),
+                    cantidadMedicos(),
+                    listarTurnos()
+                ]);
+
+                const estadosSafe = Array.isArray(est) ? est : [];
+                setEstados(estadosSafe);
+                setCantPac(typeof cp === "number" ? cp : 0);
+                setCantMed(typeof cm === "number" ? cm : 0);
+
+                setEstados(estadosSafe);
+                fillFromTurns(Array.isArray(turns) ? turns : []);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        load();
     }, []);
 
     useEffect(() => {
-        if (estados.length > 0) {
-            loadCantidadPacientes();
-            loadCantidadMedicos();
-            loadCantidadTurnos();
-        }
+        if (estados.length === 0) return;
+        listarTurnos().then((turns) => fillFromTurns(turns));
     }, [estados]);
 
     return (
-        <>
-            <Typography id="turnos-title" variant="h1" className="page-title" color="primary" tabIndex="-1">
+        <Box sx={{ p: { xs: 1.5, md: 3 }, width: "100%" }}>
+            <Typography id="turnos-title" variant="h1" className="page-title" color="primary" tabIndex="-1" sx={{ mb: 3 }}>
                 Dashboard
             </Typography>
-            {loading? <Box sx={{ width: '100%' }}><LinearProgress /></Box>:""}
-            <Paper elevation={0} sx={{ backgroundColor: 'transparent', my: 1, p: 2 }}>
-                <Grid container spacing={2} >
-                    <Grid size={{ xs: 12, md: 3 }}>
-                        <CounterWidget
-                            category="Pacientes"
-                            title={cantPac}
-                            icon={faUser}
-                            bgClass="background-primary-dark"
-                            bgImage={bgPac}
-                        />
+            {loading ? <Box sx={{ width: "100%" }}><LinearProgress /></Box> : ""}
+            <Paper elevation={0} sx={{ backgroundColor: "transparent", my: 1, p: 2 }}>
+                <Grid container spacing={2}>
+                    <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
+                        <CounterWidget category="Pacientes" title={cantPac} icon={faUser} bgClass="background-primary-dark" bgImage={bgPac} />
                     </Grid>
-                    <Grid size={{ xs: 12, md: 3 }}>
-                        <CounterWidget
-                            category="Médicos"
-                            title={cantMed}
-                            icon={faUserDoctor}
-                            bgClass="background-primary-main"
-                            bgImage={bgMed}
-                        />
+                    <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
+                        <CounterWidget category="Medicos" title={cantMed} icon={faUserDoctor} bgClass="background-primary-main" bgImage={bgMed} />
                     </Grid>
-                    <Grid size={{ xs: 12, md: 3 }}>
-                        <CounterWidget
-                            category="Turnos este mes"
-                            title={cantTurMo}
-                            icon={faCalendar}
-                            bgClass="background-secondary-dark"
-                            bgImage={bgMes}
-                        />
+                    <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
+                        <CounterWidget category="Turnos este mes" title={cantTurMo} icon={faCalendar} bgClass="background-secondary-dark" bgImage={bgMes} />
                     </Grid>
-                    <Grid size={{ xs: 12, md: 3 }}>
-                        <CounterWidget
-                            category="Realizados este año"
-                            title={cantTurYr}
-                            icon={faCircleCheck}
-                            bgClass="background-secondary-main"
-                            bgImage={bgAnio}
-                        />
+                    <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
+                        <CounterWidget category="Realizados este ano" title={cantTurYr} icon={faCircleCheck} bgClass="background-secondary-main" bgImage={bgAnio} />
                     </Grid>
                     <Grid size={{ xs: 12, md: 6 }}>
-                        <CircleChartWidget
-                            title="Turnos este mes"
-                            chartData={dataTurnosMo}
-                            containerHeight="400px"
-                            icon={faCalendar}
-                        />
+                        <CircleChartWidget title="Turnos este mes" chartData={dataTurnosMo} containerHeight="400px" icon={faCalendar} />
                     </Grid>
                     <Grid size={{ xs: 12, md: 6 }}>
-                        <StackedBarChartWidget
-                            title="Turnos este año"
-                            chartData={dataTurnosYr}
-                            chartLabels={dataTurnosYrLbl}
-                            containerHeight="400px"
-                            icon={faCalendarCheck}
-                            dataKeyPropName="mo"
-                        />
+                        <StackedBarChartWidget title="Turnos este ano" chartData={dataTurnosYr} chartLabels={dataTurnosYrLbl} containerHeight="400px" icon={faCalendarCheck} dataKeyPropName="mo" />
                     </Grid>
                     <Grid size={{ xs: 12, md: 12 }}>
-                        <StackedBarChartWidget
-                            title="Turnos por Médico este año"
-                            chartData={dataTurnosPorMedicoYr}
-                            chartLabels={dataTurnosPorMedicoYrLbl}
-                            containerHeight="400px"
-                            icon={faUserDoctor}
-                            dataKeyPropName="medico"
-                        />
+                        <StackedBarChartWidget title="Turnos por Medico este ano" chartData={dataTurnosPorMedicoYr} chartLabels={dataTurnosPorMedicoYrLbl} containerHeight="400px" icon={faUserDoctor} dataKeyPropName="medico" />
                     </Grid>
-
                 </Grid>
             </Paper>
-        </>
+        </Box>
     );
 };
 

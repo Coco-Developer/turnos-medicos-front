@@ -1,42 +1,23 @@
-import React, { useState } from "react";
+import { useMemo, useState } from "react";
 import { cambiarPassword } from "../../../services/auth.service";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faEye, faEyeSlash, faKey, faSave, faLock, faShieldAlt } from "@fortawesome/free-solid-svg-icons";
-import { 
-    Button, InputAdornment, LinearProgress, Paper, 
-    TextField, Box, Typography, Grid, Zoom, styled 
+import {
+    Alert,
+    Box,
+    Button,
+    CircularProgress,
+    Divider,
+    InputAdornment,
+    List,
+    ListItem,
+    ListItemText,
+    Paper,
+    Stack,
+    TextField,
+    Typography
 } from "@mui/material";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faEye, faEyeSlash, faKey, faLock, faShieldAlt } from "@fortawesome/free-solid-svg-icons";
 import { useSnack } from "../../context/SnackContext";
-
-// Replicamos exactamente tu "login-box-container" pero adaptable
-const StyledPaper = styled(Paper)(({ theme }) => ({
-    width: '100%',
-    maxWidth: '450px', // Un poquito más ancho que el login para comodidad
-    minHeight: '500px',
-    padding: '2.5rem',
-    backgroundColor: 'rgba(0, 51, 40, 0.5)', // Tu color exacto
-    backdropFilter: 'blur(10px)',
-    borderRadius: '1.5rem',
-    border: '1px solid rgba(255, 255, 255, 0.1)',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.8)',
-    margin: '0 auto'
-}));
-
-const StyledTextField = styled(TextField)({
-    '& .MuiOutlinedInput-root': {
-        color: '#fff',
-        '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.3)' },
-        '&:hover fieldset': { borderColor: '#007c6a' },
-        '&.Mui-focused fieldset': { borderColor: '#007c6a' },
-        backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    },
-    '& .MuiInputLabel-root': { color: '#fff', opacity: 0.7 },
-    '& .MuiInputLabel-root.Mui-focused': { color: '#007c6a', opacity: 1 },
-    marginBottom: '1.5rem'
-});
 
 const CambiarPasswordPage = () => {
     const { setSnackData } = useSnack();
@@ -44,131 +25,160 @@ const CambiarPasswordPage = () => {
     const [currentPassword, setCurrentPassword] = useState("");
     const [newPassword, setNewPassword] = useState("");
     const [repeatPassword, setRepeatPassword] = useState("");
-    
     const [showPass, setShowPass] = useState(false);
+
+    const passwordRulesOk = useMemo(() => newPassword.trim().length >= 8, [newPassword]);
+    const hasUpper = useMemo(() => /[A-Z]/.test(newPassword), [newPassword]);
+    const hasNumber = useMemo(() => /[0-9]/.test(newPassword), [newPassword]);
+    const hasSymbol = useMemo(() => /[^a-zA-Z0-9]/.test(newPassword), [newPassword]);
+    const isMatch = useMemo(() => newPassword.length > 0 && newPassword === repeatPassword, [newPassword, repeatPassword]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (newPassword !== repeatPassword) {
-            setSnackData({ type: 'error', message: "Las contraseñas no coinciden.", open: true });
+
+        if (!passwordRulesOk) {
+            setSnackData({ type: "error", message: "La nueva clave debe tener al menos 8 caracteres.", open: true });
             return;
         }
+
+        if (newPassword !== repeatPassword) {
+            setSnackData({ type: "error", message: "Las claves no coinciden.", open: true });
+            return;
+        }
+
         setLoading(true);
         try {
             await cambiarPassword(currentPassword, newPassword);
-            setSnackData({ type: 'success', message: '¡Contraseña actualizada!', open: true });
-            setCurrentPassword(""); setNewPassword(""); setRepeatPassword("");
+            setSnackData({ type: "success", message: "Clave actualizada correctamente.", open: true });
+            setCurrentPassword("");
+            setNewPassword("");
+            setRepeatPassword("");
         } catch (error) {
-            setSnackData({ type: 'error', message: error.response?.data?.message || 'Error de conexión.', open: true });
+            setSnackData({
+                type: "error",
+                message: error?.response?.data?.message || "No se pudo actualizar la clave.",
+                open: true
+            });
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <Zoom in={true}>
-            <Box sx={{ 
-                width: '100%', 
-                display: 'flex', 
-                flexDirection: 'column', 
-                alignItems: 'center',
-                gap: 4 
-            }}>
-                {/* Logo y Título Estilo Login */}
-                <Box sx={{ textAlign: 'center' }}>
-                    <img src="/logo.png" alt="Logo" style={{ height: '5rem', marginBottom: '1rem' }} />
-                    <Typography variant="h4" className="app-logo-alt" sx={{ 
-                        fontWeight: 'bold', 
-                        textTransform: 'uppercase',
-                        letterSpacing: '2px'
-                    }}>
-                        Seguridad
-                    </Typography>
-                </Box>
+        <Box sx={{ width: "100%", maxWidth: 980, mx: "auto", py: { xs: 1, md: 2 } }}>
+            <Paper elevation={4} sx={{ p: { xs: 2, sm: 3, md: 4 }, borderRadius: 3 }}>
+                <Stack
+                    direction={{ xs: "column", md: "row" }}
+                    spacing={3}
+                    divider={<Divider orientation="vertical" flexItem sx={{ display: { xs: "none", md: "block" } }} />}
+                >
+                    <Box sx={{ flex: 1.2 }}>
+                        <Stack spacing={1.2} sx={{ mb: 2 }}>
+                            <Typography variant="h4" sx={{ fontWeight: 700 }}>
+                                Cambiar Contrasena
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
+                                Actualiza tus credenciales y protege tu cuenta.
+                            </Typography>
+                        </Stack>
 
-                <StyledPaper elevation={0}>
-                    {loading && <LinearProgress sx={{ width: '100%', position: 'absolute', top: 0, borderRadius: '1rem 1rem 0 0', bgcolor: 'transparent', '& .MuiLinearProgress-bar': { bgcolor: '#007c6a' } }} />}
-                    
-                    <Typography variant="h6" sx={{ color: '#fff', mb: 4, fontWeight: 300, textAlign: 'center' }}>
-                        Actualizar Credenciales
-                    </Typography>
+                        <Box component="form" onSubmit={handleSubmit} noValidate>
+                            <Stack spacing={2}>
+                                <TextField
+                                    fullWidth
+                                    required
+                                    label="Clave actual"
+                                    type={showPass ? "text" : "password"}
+                                    value={currentPassword}
+                                    onChange={(e) => setCurrentPassword(e.target.value)}
+                                    autoComplete="current-password"
+                                    InputProps={{
+                                        startAdornment: (
+                                            <InputAdornment position="start">
+                                                <FontAwesomeIcon icon={faLock} />
+                                            </InputAdornment>
+                                        )
+                                    }}
+                                />
 
-                    <form onSubmit={handleSubmit} style={{ width: '100%' }}>
-                        <StyledTextField
-                            fullWidth required label="Contraseña Actual"
-                            type={showPass ? "text" : "password"}
-                            value={currentPassword}
-                            onChange={(e) => setCurrentPassword(e.target.value)}
-                            InputProps={{
-                                startAdornment: (
-                                    <InputAdornment position="start">
-                                        <FontAwesomeIcon icon={faLock} style={{ color: '#007c6a' }} />
-                                    </InputAdornment>
-                                )
-                            }}
-                        />
+                                <TextField
+                                    fullWidth
+                                    required
+                                    label="Nueva clave"
+                                    type={showPass ? "text" : "password"}
+                                    value={newPassword}
+                                    onChange={(e) => setNewPassword(e.target.value)}
+                                    autoComplete="new-password"
+                                    InputProps={{
+                                        startAdornment: (
+                                            <InputAdornment position="start">
+                                                <FontAwesomeIcon icon={faKey} />
+                                            </InputAdornment>
+                                        )
+                                    }}
+                                />
 
-                        <StyledTextField
-                            fullWidth required label="Nueva Contraseña"
-                            type={showPass ? "text" : "password"}
-                            value={newPassword}
-                            onChange={(e) => setNewPassword(e.target.value)}
-                            InputProps={{
-                                startAdornment: (
-                                    <InputAdornment position="start">
-                                        <FontAwesomeIcon icon={faKey} style={{ color: '#007c6a' }} />
-                                    </InputAdornment>
-                                )
-                            }}
-                        />
+                                <TextField
+                                    fullWidth
+                                    required
+                                    label="Repetir nueva clave"
+                                    type={showPass ? "text" : "password"}
+                                    value={repeatPassword}
+                                    onChange={(e) => setRepeatPassword(e.target.value)}
+                                    autoComplete="new-password"
+                                    InputProps={{
+                                        startAdornment: (
+                                            <InputAdornment position="start">
+                                                <FontAwesomeIcon icon={faShieldAlt} />
+                                            </InputAdornment>
+                                        ),
+                                        endAdornment: (
+                                            <InputAdornment position="end">
+                                                <FontAwesomeIcon
+                                                    icon={showPass ? faEyeSlash : faEye}
+                                                    onClick={() => setShowPass((prev) => !prev)}
+                                                    style={{ cursor: "pointer" }}
+                                                />
+                                            </InputAdornment>
+                                        )
+                                    }}
+                                />
 
-                        <StyledTextField
-                            fullWidth required label="Repetir Nueva Contraseña"
-                            type={showPass ? "text" : "password"}
-                            value={repeatPassword}
-                            onChange={(e) => setRepeatPassword(e.target.value)}
-                            InputProps={{
-                                startAdornment: (
-                                    <InputAdornment position="start">
-                                        <FontAwesomeIcon icon={faShieldAlt} style={{ color: '#007c6a' }} />
-                                    </InputAdornment>
-                                ),
-                                endAdornment: (
-                                    <InputAdornment position="end">
-                                        <FontAwesomeIcon 
-                                            icon={showPass ? faEyeSlash : faEye} 
-                                            onClick={() => setShowPass(!showPass)} 
-                                            style={{ cursor: 'pointer', color: '#fff', opacity: 0.5 }} 
-                                        />
-                                    </InputAdornment>
-                                )
-                            }}
-                        />
+                                {!passwordRulesOk && newPassword.length > 0 && (
+                                    <Alert severity="warning">La clave debe tener minimo 8 caracteres.</Alert>
+                                )}
 
-                        <Button 
-                            fullWidth variant="contained" type="submit" 
-                            disabled={loading} 
-                            sx={{ 
-                                mt: 2, py: 1.8, 
-                                bgcolor: '#007c6a', 
-                                color: '#fff',
-                                fontWeight: 'bold',
-                                fontSize: '1rem',
-                                borderRadius: '0.8rem',
-                                '&:hover': { bgcolor: '#005d4f' },
-                                textTransform: 'none'
-                            }}
-                        >
-                            {loading ? "Guardando..." : "Confirmar Cambio"}
-                        </Button>
-                    </form>
-                </StyledPaper>
+                                <Button
+                                    fullWidth
+                                    variant="contained"
+                                    type="submit"
+                                    disabled={loading}
+                                    sx={{ py: 1.25, mt: 1 }}
+                                >
+                                    {loading ? <CircularProgress size={22} color="inherit" /> : "Guardar cambios"}
+                                </Button>
+                            </Stack>
+                        </Box>
+                    </Box>
 
-                <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.6)', textAlign: 'center', mt: 2 }}>
-                    La sesión se mantendrá activa tras el cambio.
-                </Typography>
-            </Box>
-        </Zoom>
+                    <Box sx={{ flex: 1 }}>
+                        <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
+                            Recomendaciones
+                        </Typography>
+                        <List dense sx={{ mb: 2 }}>
+                            <ListItem><ListItemText primary={`${passwordRulesOk ? "OK" : "Pendiente"} Minimo 8 caracteres`} /></ListItem>
+                            <ListItem><ListItemText primary={`${hasUpper ? "OK" : "Pendiente"} Al menos 1 mayuscula`} /></ListItem>
+                            <ListItem><ListItemText primary={`${hasNumber ? "OK" : "Pendiente"} Al menos 1 numero`} /></ListItem>
+                            <ListItem><ListItemText primary={`${hasSymbol ? "OK" : "Pendiente"} Al menos 1 simbolo`} /></ListItem>
+                            <ListItem><ListItemText primary={`${isMatch ? "OK" : "Pendiente"} Confirmacion coincide`} /></ListItem>
+                        </List>
+                        <Alert severity="info">
+                            Evita usar datos personales y no reutilices claves de otros servicios.
+                        </Alert>
+                    </Box>
+                </Stack>
+            </Paper>
+        </Box>
     );
 };
 

@@ -2,32 +2,25 @@ import dayjs from "dayjs";
 import { crearMedico, modificarMedico } from "../../../services/medicos.service";
 import { DAYSMAP } from "../../libs/constants";
 
-/**
- * HandleValidation Normalizado
- */
 export const handleValidation = (estadoLocal, setMedico) => (e) => {
     const { name, value } = e.target;
-    const isValid = value !== '';
-    
+    const isValid = value !== "";
+
     setMedico((prev) => ({
         ...prev,
-        [name]: { 
-            ...prev[name], 
-            error: !isValid 
+        [name]: {
+            ...prev[name],
+            error: !isValid
         }
     }));
-    
+
     return isValid;
 };
 
-/**
- * Lógica de validación interna
- */
 const validateForm = (medico, defaultValues) => {
     let allOK = true;
-    let updated = { ...medico };
+    const updated = { ...medico };
 
-    // 1. Validación de campos requeridos + horarios inválidos
     for (const [key, value] of Object.entries(medico)) {
         let isNotValid = false;
         let errorCode = null;
@@ -56,16 +49,14 @@ const validateForm = (medico, defaultValues) => {
         if (isNotValid) allOK = false;
     }
 
-    // 2. Validación de pares inicio–fin por día
-    Object.keys(DAYSMAP).forEach(dayKey => {
+    Object.keys(DAYSMAP).forEach((dayKey) => {
         const iniKey = `horarioatencion_${dayKey}_inicio`;
         const finKey = `horarioatencion_${dayKey}_fin`;
 
-        let inicio = updated[iniKey]?.dato ?? null;
-        let fin = updated[finKey]?.dato ?? null;
+        const inicio = updated[iniKey]?.dato ?? null;
+        const fin = updated[finKey]?.dato ?? null;
 
         const mismatch = (inicio && !fin) || (!inicio && fin);
-
         if (mismatch) {
             allOK = false;
             updated[iniKey].error = true;
@@ -80,12 +71,12 @@ const validateForm = (medico, defaultValues) => {
                 updated[iniKey].error = true;
                 updated[finKey].error = true;
                 updated[iniKey].errorCode = "invalidRange";
+                updated[finKey].errorCode = "invalidRange";
             }
         }
     });
 
-    // 3. Validación: al menos un día completo
-    const tieneAlMenosUnDia = Object.keys(DAYSMAP).some(dayKey => {
+    const tieneAlMenosUnDia = Object.keys(DAYSMAP).some((dayKey) => {
         const iniKey = `horarioatencion_${dayKey}_inicio`;
         const finKey = `horarioatencion_${dayKey}_fin`;
         return updated[iniKey]?.dato && updated[finKey]?.dato && !updated[iniKey].error;
@@ -93,7 +84,7 @@ const validateForm = (medico, defaultValues) => {
 
     if (!tieneAlMenosUnDia) {
         allOK = false;
-        Object.keys(DAYSMAP).forEach(dayKey => {
+        Object.keys(DAYSMAP).forEach((dayKey) => {
             if (!updated[`horarioatencion_${dayKey}_inicio`].dato) {
                 updated[`horarioatencion_${dayKey}_inicio`].error = true;
                 updated[`horarioatencion_${dayKey}_inicio`].errorCode = "noWorkingDay";
@@ -104,87 +95,95 @@ const validateForm = (medico, defaultValues) => {
     return { allOK, updated };
 };
 
-/**
- * Submit principal 
- * Recibe setSnackData por parámetro para evitar errores de Hook
- */
 export const SubmitForm = (medico, setMedico, idMedicoMod, setSaving, defValues, navigate, setSnackData) => {
-    
     return async (event) => {
         if (event) event.preventDefault();
-        
+
         const { allOK, updated } = validateForm(medico, defValues);
         setMedico(updated);
 
-        if (allOK) {
-            setSaving(true);
-            
-            let medDto = {
-                Id: parseInt(idMedicoMod),
-                Apellido: updated.apellido.dato,
-                Nombre: updated.nombre.dato,
-                Telefono: updated.telefono.dato,
-                Direccion: updated.direccion.dato,
-                Dni: updated.dni.dato,
-                EspecialidadId: parseInt(updated.especialidadid.dato),
-                FechaAltaLaboral: dayjs(updated.fechaaltalaboral.dato).format("YYYY-MM-DDTHH:mm:ss"),
-                Matricula: updated.matricula.dato,
-                Foto: updated.foto.dato || null,
-                Horarios: []
-            };
-
-            Object.keys(DAYSMAP).forEach(dayKey => {
-                const ini = updated[`horarioatencion_${dayKey}_inicio`].dato;
-                const fin = updated[`horarioatencion_${dayKey}_fin`].dato;
-
-                if (ini && fin) {
-                    medDto.Horarios.push({
-                        MedicoId: parseInt(idMedicoMod),
-                        DiaSemana: DAYSMAP[dayKey],
-                        HorarioAtencionInicio: dayjs(ini).format("HH:mm:ss"),
-                        HorarioAtencionFin: dayjs(fin).format("HH:mm:ss")
-                    });
-                }
+        if (!allOK) {
+            setSnackData({
+                type: "error",
+                message: "Verifique los campos marcados en rojo.",
+                open: true
             });
+            return;
+        }
 
-            try {
-                const r = idMedicoMod === 0 
-                    ? await crearMedico(medDto) 
-                    : await modificarMedico(idMedicoMod, medDto);
+        setSaving(true);
 
-                setSaving(false);
+        const horarios = [];
+        const idNum = Number.parseInt(idMedicoMod, 10) || 0;
+        const especialidadNum = Number.parseInt(updated.especialidadid.dato, 10);
+        const fechaAlta = dayjs(updated.fechaaltalaboral.dato).format("YYYY-MM-DD");
 
-                if (r.status === 200 || r.status === 201) {
-                    setSnackData({
-                        duration: 3000,
-                        type: 'success',
-                        message: 'Guardado correctamente. Redirigiendo...',
-                        open: true,
-                    });
+        const isCreate = idNum === 0;
 
-                    setTimeout(() => {
-                        if (navigate) navigate('/medicos');
-                    }, 1500);
+        const medDto = {
+            Id: idNum,
+            Apellido: updated.apellido.dato,
+            Nombre: updated.nombre.dato,
+            Telefono: updated.telefono.dato,
+            Direccion: updated.direccion.dato,
+            Dni: updated.dni.dato,
+            EspecialidadId: especialidadNum,
+            FechaAltaLaboral: fechaAlta,
+            Matricula: updated.matricula.dato,
+            Horarios: horarios
+        };
 
-                } else {
-                    setSnackData({
-                        type: 'error',
-                        message: r.statusText || 'Error al guardar',
-                        open: true
-                    });
-                }
-            } catch (error) {
-                setSaving(false);
-                setSnackData({
-                    type: 'error',
-                    message: 'Error de conexión con el servidor',
-                    open: true
+        if (isCreate) {
+            medDto.Foto = updated.foto.dato || null;
+        }
+
+        Object.keys(DAYSMAP).forEach((dayKey) => {
+            const ini = updated[`horarioatencion_${dayKey}_inicio`].dato;
+            const fin = updated[`horarioatencion_${dayKey}_fin`].dato;
+
+            if (ini && fin) {
+                const iniStr = dayjs(ini).format("HH:mm:00");
+                const finStr = dayjs(fin).format("HH:mm:00");
+
+                horarios.push({
+                    MedicoId: idNum,
+                    DiaSemana: DAYSMAP[dayKey],
+                    HorarioAtencionInicio: iniStr,
+                    HorarioAtencionFin: finStr
                 });
             }
-        } else {
+        });
+
+        try {
+            const response = isCreate
+                ? await crearMedico(medDto)
+                : await modificarMedico(idNum, medDto);
+
+            setSaving(false);
+
+            if (response?.status === 200 || response?.status === 201) {
+                setSnackData({
+                    duration: 3000,
+                    type: "success",
+                    message: "Guardado correctamente. Redirigiendo...",
+                    open: true
+                });
+                setTimeout(() => {
+                    if (navigate) navigate("/medicos");
+                }, 1500);
+                return;
+            }
+
             setSnackData({
-                type: 'error',
-                message: 'Verifique los campos marcados en rojo.',
+                type: "error",
+                message: response?.statusText || "Error al guardar",
+                open: true
+            });
+        } catch (error) {
+            setSaving(false);
+            setSnackData({
+                type: "error",
+                message: error?.response?.data?.message || error?.response?.data || "Error de conexion con el servidor",
                 open: true
             });
         }

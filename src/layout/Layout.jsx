@@ -5,7 +5,7 @@ import Box from '@mui/material/Box';
 
 const Layout = () => {
     return (
-        <Box sx={{ display: 'flex', minHeight: '100vh' }}>
+        <Box sx={{ display: 'flex', minHeight: '100dvh', width: '100%' }}>
         
             <CustomToolbar /> 
 
@@ -13,11 +13,12 @@ const Layout = () => {
                 component="main" 
                 sx={{ 
                     flexGrow: 1, 
-                    p: 3, 
+                    p: { xs: 1.25, sm: 2, md: 3 }, 
                     width: '100%',
                     backgroundColor: 'background.default',
-                    minHeight: '100vh',
-                    overflowX: 'hidden' 
+                    minHeight: '100dvh',
+                    overflowX: 'hidden',
+                    overflowY: 'auto'
                 }}
             >
                 <Outlet />

@@ -1,119 +1,182 @@
 import api from "./auth.service";
+import dayjs from "dayjs";
 
 /**
- * Manejador de errores estandarizado.
- * Mantiene tu lógica pero asegura que el status siempre exista para evitar errores de JS.
+ * Normaliza error HTTP
  */
-const handleError = (error) => ({
-    status: error.response?.status || 500,
-    statusText: error.response?.data?.message || 'Error de comunicación con el servidor de Turnos'
+const normalizeError = (error) => ({
+    ok: false,
+    status: error.response?.status ?? 500,
+    message:
+        error.response?.data?.message ||
+        error.response?.data ||
+        "Error de comunicacion con el servidor"
 });
 
-// --- FUNCIONES CORE ---
+/* =========================================================
+   CORE CRUD
+========================================================= */
 
 export const listarTurnos = async () => {
     try {
-        const response = await api.get('/Turno');
-        return response.data;
-    } catch (error) { return handleError(error); }
+        const { data } = await api.get("/Turno");
+        return Array.isArray(data) ? data : [];
+    } catch {
+        return [];
+    }
 };
 
 export const obtenerTurno = async (id) => {
     try {
-        const response = await api.get(`/Turno/${id}`);
-        return response.data;
-    } catch (error) { return handleError(error); }
+        const { data } = await api.get(`/Turno/${id}`);
+        return data ?? null;
+    } catch {
+        return null;
+    }
 };
 
 export const crearTurno = async (turno) => {
     try {
-        // El interceptor inyecta X-API-KEY y Authorization
-        return await api.post('/Turno', turno);
+        const response = await api.post("/Turno", turno);
+        return {
+            ok: true,
+            status: response.status,
+            message: "Turno creado correctamente"
+        };
     } catch (error) {
-        // LÓGICA CRÍTICA: Si el turno se creó pero falló el envío del mail, 
-        // no queremos que el usuario vea un error catastrófico.
-        if (error.response?.data === 'Failure sending mail.') {
-            console.warn("Turno creado, pero hubo un problema enviando el correo de notificación.");
-            return { status: 201, statusText: 'Created with mail warning' }; 
+        const rawData = error.response?.data;
+        const message =
+            rawData?.message ||
+            (typeof rawData === "string" ? rawData : "");
+
+        if (
+            message === "Failure sending mail." ||
+            message.includes("Value cannot be null. (Parameter 'address')")
+        ) {
+            return {
+                ok: true,
+                status: 201,
+                message: "Turno creado (sin envio de mail)"
+            };
         }
-        return handleError(error);
+
+        return normalizeError(error);
     }
 };
 
 export const modificarTurno = async (id, turno) => {
     try {
-        return await api.put(`/Turno/${id}`, turno);
-    } catch (error) { return handleError(error); }
+        const response = await api.put(`/Turno/${id}`, turno);
+        return { ok: true, status: response.status };
+    } catch (error) {
+        return normalizeError(error);
+    }
 };
 
 export const borrarTurno = async (id) => {
     try {
-        return await api.delete(`/Turno/${id}`);
-    } catch (error) { return handleError(error); }
+        const response = await api.delete(`/Turno/${id}`);
+        return { ok: true, status: response.status };
+    } catch (error) {
+        return normalizeError(error);
+    }
 };
 
-// --- FILTROS ESPECÍFICOS ---
+/* =========================================================
+   FILTROS
+========================================================= */
 
-export const listarTurnosDeFecha = async (dte) => {
+export const listarTurnosDeFecha = async (fecha) => {
     try {
-        const response = await api.get(`/Turno/get-turnos-of-date/${dte}`);
-        return response.data;
-    } catch (error) { return handleError(error); }
+        const fechaISO = dayjs(fecha).format("YYYY-MM-DD");
+        const { data } = await api.get(`/Turno/get-by-date/${fechaISO}`);
+        return Array.isArray(data) ? data : [];
+    } catch {
+        return [];
+    }
 };
 
 export const listarTurnosDeMedico = async (id) => {
     try {
-        const response = await api.get(`/Turno/get-by-doctor/${id}`);
-        return response.data;
-    } catch (error) { return handleError(error); }
+        // Endpoint nuevo con vista completa
+        const { data } = await api.get(`/Turno/get-turnos-of-doctor-vw/${id}`);
+        return Array.isArray(data) ? data : [];
+    } catch {
+        // Fallback de compatibilidad por si aún no está desplegado el endpoint nuevo
+        try {
+            const { data } = await api.get(`/Turno/get-turnos-of-doctor/${id}`);
+            return Array.isArray(data) ? data : [];
+        } catch {
+            return [];
+        }
+    }
 };
 
 export const listarTurnosDePaciente = async (id) => {
     try {
-        const response = await api.get(`/Turno/get-by-patient/${id}`);
-        return response.data;
-    } catch (error) { return handleError(error); }
+        // Endpoint correcto del backend
+        const { data } = await api.get(`/Turno/get-turnos-by-patient/${id}`);
+        return Array.isArray(data) ? data : [];
+    } catch {
+        // Fallback de compatibilidad si quedó publicado el alias viejo
+        try {
+            const { data } = await api.get(`/Turno/get-by-patient/${id}`);
+            return Array.isArray(data) ? data : [];
+        } catch {
+            return [];
+        }
+    }
 };
 
-export const listarFechasConTurno = async () => {
+export const listarFechasConTurno = async (mes) => {
     try {
-        const response = await api.get('/Turno/get-dates-with-appointments');
-        return response.data;
-    } catch (error) { return handleError(error); }
+        const { data } = await api.get(`/Turno/get-dates-with-shifts/${mes}`);
+        return Array.isArray(data) ? data : [];
+    } catch {
+        return [];
+    }
 };
 
 export const modificarEstadoTurno = async (id, estado) => {
     try {
-        // Mantiene el formato de query param ?st=
-        return await api.put(`/Turno/set-turno-status/${id}?st=${estado}`);
-    } catch (error) { return handleError(error); }
-};
-
-// --- DASHBOARD Y CALENDARIO ---
-
-export const obtenerDashboardData = async () => {
-    try {
-        const response = await api.get('/Turno/get-dashboard-data');
-        return response.data;
-    } catch (error) { 
-        return { 
-            status: error.response?.status || 500,
-            statusText: 'No se pudo cargar la información del dashboard' 
-        }; 
+        const response = await api.put(`/Turno/set-turno-status/${id}?st=${estado}`);
+        return { ok: true, status: response.status };
+    } catch (error) {
+        return normalizeError(error);
     }
 };
 
-export const listarCalendarData = async (startStr, endStr) => {
+/* =========================================================
+   DASHBOARD
+========================================================= */
+
+export const obtenerDashboardData = async () => {
     try {
-        const response = await api.get('/Turno/get-calendar-data', {
-            params: { start: startStr, end: endStr }
-        });
-        return response.data;
-    } catch (error) { return handleError(error); }
+        const { data } = await api.get("/Turno/get-dashboard-data");
+        return data ?? null;
+    } catch {
+        return null;
+    }
 };
 
-// =========================================================
-// ALIAS DE COMPATIBILIDAD (Evitan el error de "Pantalla Blanca")
-// =========================================================
+/* =========================================================
+   CALENDARIO
+========================================================= */
+
+export const listarCalendarData = async (startStr, endStr) => {
+    try {
+        const { data } = await api.get("/Turno/get-calendar-data", {
+            params: { start: startStr, end: endStr }
+        });
+        return Array.isArray(data) ? data : [];
+    } catch {
+        return [];
+    }
+};
+
+/* =========================================================
+   ALIAS COMPATIBILIDAD
+========================================================= */
+
 export const listarTurnosPorMedico = listarTurnosDeMedico;
 export const listarTurnosPaciente = listarTurnosDePaciente;

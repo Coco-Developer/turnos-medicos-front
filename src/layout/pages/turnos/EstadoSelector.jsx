@@ -1,111 +1,40 @@
-import { useEffect, useState } from "react";
-import { FormControl, InputLabel, MenuItem, Select, Box, Typography } from "@mui/material";
-import Grid from '@mui/material/Grid';
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-// Importación de los iconos necesarios según los nombres del script SQL
-import { 
-    faClock, 
-    faCircleCheck, 
-    faBan, 
-    faCheckDouble, 
-    faExclamationTriangle 
-} from '@fortawesome/free-solid-svg-icons';
-
-// Servicio
-import { listarEstados } from "../../../services/estados.service";
+import React from "react";
+import { FormControl, InputLabel, Select, MenuItem, Box, ListItemIcon, Typography } from "@mui/material";
+import CircleIcon from '@mui/icons-material/Circle';
 
 export const EstadoSelector = ({ turno, onChange }) => {
-    const [estados, setEstados] = useState([]);
-    const [loading, setLoading] = useState(true);
-
-    // Carga de datos desde el backend
-    useEffect(() => {
-        let isMounted = true;
-        
-        const fetchEstados = async () => {
-            try {
-                const data = await listarEstados();
-                if (isMounted) {
-                    setEstados(data);
-                    setLoading(false);
-                }
-            } catch (error) {
-                console.error("Error al cargar selector de estados:", error);
-                if (isMounted) setLoading(false);
-            }
-        };
-
-        fetchEstados();
-        return () => { isMounted = false; };
-    }, []);
-
-    // Mapeo de strings de la DB a objetos de FontAwesome
-    const getIcon = (iconName) => {
-        const iconMap = {
-            'faClock': faClock,
-            'faCircleCheck': faCircleCheck,
-            'faBan': faBan,
-            'faCheckDouble': faCheckDouble
-        };
-        return iconMap[iconName] || faExclamationTriangle;
-    };
+    // Definimos los estados posibles (esto podría venir de una API)
+    const estados = [
+        { id: 1, nombre: "Pendiente", color: "#ffc107" },
+        { id: 2, nombre: "Confirmado", color: "#4caf50" },
+        { id: 3, nombre: "Cancelado", color: "#f44336" },
+        { id: 4, nombre: "Ausente", color: "#9e9e9e" }
+    ];
 
     return (
-        <Grid item xs={12} md={3}>
-            <FormControl 
-                variant="outlined" 
-                fullWidth 
-                margin="normal" 
-                error={turno.estadoid.error}
-            >
-                <InputLabel id="estado-selector-label">Estado</InputLabel>
+        <Box sx={{ width: '100%' }}>
+            <FormControl variant="outlined" fullWidth margin="normal">
+                <InputLabel id="estado-label">Estado del Turno</InputLabel>
                 <Select
-                    labelId="estado-selector-label"
-                    id="estado-selector"
-                    // Asegura que siempre tenga un valor para ser un componente controlado
-                    value={turno.estadoid.dato || ''} 
-                    label="Estado"
-                    name="estadoid" // Crucial para el handleChange del padre
+                    labelId="estado-label"
+                    id={turno.estadoid.campo}
+                    name={turno.estadoid.campo}
+                    value={turno.estadoid.dato}
+                    label="Estado del Turno"
                     onChange={onChange}
                 >
-                    {loading ? (
-                        <MenuItem disabled value="">
-                            <Typography variant="body2">Cargando...</Typography>
+                    {estados.map((est) => (
+                        <MenuItem key={est.id} value={est.id}>
+                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                <ListItemIcon sx={{ minWidth: 30 }}>
+                                    <CircleIcon sx={{ fontSize: 14, color: est.color }} />
+                                </ListItemIcon>
+                                <Typography variant="body2">{est.nombre}</Typography>
+                            </Box>
                         </MenuItem>
-                    ) : (
-                        estados.map((est) => (
-                            <MenuItem 
-                                key={est.id} 
-                                value={est.id} 
-                                // Opcional: usar la clase CSS que viene de la base de datos
-                                className={est.clase} 
-                            >
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                                    <FontAwesomeIcon 
-                                        icon={getIcon(est.icono)} 
-                                        style={{ color: est.color || 'inherit' }} 
-                                    />
-                                    <Typography variant="body1">
-                                        {est.nombre}
-                                    </Typography>
-                                </Box>
-                            </MenuItem>
-                        ))
-                    )}
-                    
-                    {!loading && estados.length === 0 && (
-                        <MenuItem disabled value="">
-                            No hay estados cargados en BD
-                        </MenuItem>
-                    )}
+                    ))}
                 </Select>
-                
-                {turno.estadoid.error && (
-                    <Typography variant="caption" color="error" sx={{ ml: 2 }}>
-                        El estado es obligatorio
-                    </Typography>
-                )}
             </FormControl>
-        </Grid>
+        </Box>
     );
 };
