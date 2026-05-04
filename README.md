@@ -1,36 +1,126 @@
-🏥 ChronoMED Revolution - Sistema de Gestión Médica
-ChronoMED es una solución integral para la administración de centros de salud, desarrollada como proyecto colaborativo. El sistema permite una gestión ágil de turnos, médicos y pacientes, centralizando la operación en una interfaz moderna y eficiente.
+# ChronoMED Web
 
-🚀 Modernización y Migración
-Originalmente concebido en una arquitectura tradicional, el equipo tomó la decisión estratégica de migrar el proyecto a Vite. Esta transición permitió:
+Aplicación web desarrollada para la administración de centros médicos y gestión integral de turnos.
 
-Optimización del Build: Reducción significativa en los tiempos de compilación y despliegue.
+## Descripción
 
-Developer Experience: Implementación de Hot Module Replacement (HMR) para un desarrollo más ágil.
+ChronoMED Web permite gestionar pacientes, médicos, especialidades y turnos desde una interfaz moderna, responsiva y orientada a la operación administrativa.
 
-Performance: Mejora en la velocidad de carga final del cliente mediante la optimización de activos estáticos.
+La aplicación fue desarrollada utilizando React y Vite, priorizando rendimiento, experiencia de usuario y escalabilidad.
 
-👥 Trabajo en Equipo
-Este proyecto es el resultado del esfuerzo coordinado de un equipo de desarrollo, donde aplicamos:
+---
 
-Metodologías Ágiles: Sincronización constante para la integración de componentes.
+## Funcionalidades principales
 
-Control de Versiones: Uso riguroso de Git para la gestión de ramas y resolución de conflictos.
+* Login seguro
+* Dashboard operativo
+* Gestión de turnos
+* Gestión de pacientes
+* Gestión de médicos
+* Gestión de especialidades
+* Visualización de métricas
+* Calendario interactivo
+* Control de sesiones
+* Rutas protegidas
 
-Full-Stack Integration: Conexión fluida con un backend robusto y base de datos SQL alojados en Azure.
+---
 
-🛠️ Stack Principal
-Frontend: React 19, Material UI (MUI) v7, React Router 7.
+## Stack tecnológico
 
-Visualización: MUI X Charts, ApexCharts, FullCalendar.
+| Tecnología     | Uso                |
+| -------------- | ------------------ |
+| React 19       | Frontend           |
+| Vite           | Build Tool         |
+| Material UI v7 | UI Components      |
+| React Router 7 | Navegación         |
+| Axios          | Consumo API        |
+| ApexCharts     | Gráficos           |
+| FullCalendar   | Gestión calendario |
 
-Networking: Axios con interceptores de seguridad (JWT & API Keys).
+---
 
-Infraestructura: Desplegado mediante GitHub Actions en Azure Static Web Apps.
+## Infraestructura y despliegue
 
-🔑 Características Clave
-Dashboard de Métricas: Visualización en tiempo real de la actividad del centro médico.
+El frontend fue integrado con:
 
-Seguridad: Rutas protegidas y manejo de sesiones seguras mediante interceptores de respuesta.
+* GitHub Actions
+* Azure Static Web Apps
+* Axios Interceptors
+* Manejo de JWT y sesiones seguras
 
-UX/UI Profesional: Interfaz limpia, responsiva y orientada al usuario administrativo y médico.
+---
+
+## Optimización y migración
+
+El proyecto fue migrado a Vite con el objetivo de:
+
+* Mejorar tiempos de compilación
+* Optimizar carga del cliente
+* Mejorar experiencia de desarrollo
+* Implementar Hot Module Replacement (HMR)
+
+---
+
+## Dashboard
+
+El sistema incluye paneles de control con métricas operativas:
+
+* Turnos diarios
+* Turnos mensuales
+* Atendidos
+* Pendientes
+* Cancelados
+* Ausentes
+
+---
+
+## Capturas
+
+### Login
+
+![Login](docs/login.png)
+
+### Dashboard
+
+![Dashboard](docs/dashboard.png)
+
+---
+
+## Roles del sistema
+
+La plataforma contempla distintos perfiles:
+
+* Administrador
+* Secretaría
+* Pacientes
+
+---
+
+## Testing funcional
+
+Se realizaron pruebas funcionales orientadas a validar:
+
+* Navegación
+* Gestión de turnos
+* Dashboard
+* Validaciones
+* Login y seguridad
+
+---
+
+## Mejoras futuras
+
+* Integración con IA
+* Automatización administrativa
+* Mejoras analíticas
+* Integración mobile
+* Notificaciones inteligentes
+
+---
+
+## Equipo de desarrollo
+
+* Santiago Gauna Martínez
+* Gabriela Gil Duarte
+* Andrés Landeau
+* Joaquín Lázaro
