@@ -78,11 +78,11 @@ El sistema incluye paneles de control con métricas operativas:
 
 ### Login
 
-![Login](docs/login.png)
+![Login](Login.png)
 
 ### Dashboard
 
-![Dashboard](docs/dashboard.png)
+![Dashboard](Dashboard.png)
 
 ---
 
